@@ -8,6 +8,8 @@
 **/moc_*.cpp
 **/ui_*.h
 **/qrc_*.cpp
+**/*_ui.py
+**/*_rc.py
 **/*.qmlc
 **/*.pkg
 **/*.dmg
