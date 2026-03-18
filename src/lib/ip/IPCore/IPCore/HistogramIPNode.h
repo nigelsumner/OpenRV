@@ -30,6 +30,7 @@ namespace IPCore
     private:
         IntProperty* m_active;
         IntProperty* m_height;
+        FloatProperty* m_opacity;
     };
 
 } // namespace IPCore

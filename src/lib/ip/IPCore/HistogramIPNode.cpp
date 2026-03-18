@@ -28,7 +28,8 @@ namespace IPCore
         : IPNode(name, def, graph, group)
     {
         m_active = declareProperty<IntProperty>("node.active", 1);
-        m_height = declareProperty<IntProperty>("node.height", 100);
+        m_height = declareProperty<IntProperty>("node.height", 600);
+        m_opacity = declareProperty<FloatProperty>("node.opacity", 0.95f);
     }
 
     HistogramIPNode::~HistogramIPNode() {}
@@ -42,6 +43,11 @@ namespace IPCore
             return IPImage::newNoImage(this, "No Input");
         if (m_active && !m_active->front())
             return image;
+
+        float opacity = m_opacity ? m_opacity->front() : 0.95f;
+
+        // Second evaluation for the clean background pass
+        IPImage* bgImage = IPNode::evaluate(context);
 
         IPImage* newImage = image;
         if (!image->shaderExpr && !image->mergeExpr)
@@ -77,17 +83,19 @@ namespace IPCore
             image2 = insertImage;
         }
 
-        IPImage* histo = new IPImage(this, IPImage::BlendRenderType, 256, 1, 1.0, IPImage::DataBuffer, IPImage::FloatDataType);
+        size_t width = 256;
+
+        IPImage* histo = new IPImage(this, IPImage::BlendRenderType, width, 1, 1.0, IPImage::DataBuffer, IPImage::FloatDataType);
         histo->setHistogram(true);
         histo->appendChild(image2);
         histo->shaderExpr = Shader::newSourceRGBA(histo);
 
         // this image will have a shaderExpr that uses the histogram result to
-        // render a histogram
-        size_t width = 256;
-        size_t height = m_height ? m_height->front() : 100;
+        // render a histogram — match the source image dimensions
+        size_t outWidth = newImage->width;
+        size_t outHeight = newImage->height;
 
-        IPImage* result = new IPImage(this, IPImage::MergeRenderType, width, height, 1.0, IPImage::IntermediateBuffer);
+        IPImage* result = new IPImage(this, IPImage::MergeRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
 
         IPImageVector images;
         IPImageSet modifiedImages;
@@ -100,7 +108,22 @@ namespace IPCore
         result->mergeExpr = Shader::newHistogram(result, inExpressions);
         result->appendChild(histo);
 
-        return result;
+        // Composite: source as base, histogram overlaid at reduced opacity
+        IPImage* composite = new IPImage(this, IPImage::BlendRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
+        composite->blendMode = IPImage::Over;
+
+        // Wrap bgImage in an intermediate to ensure it has a shaderExpr
+        IPImage* bg = new IPImage(this, IPImage::BlendRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
+        bg->shaderExpr = Shader::newSourceRGBA(bg);
+        bg->appendChild(bgImage);
+
+        // Apply opacity to histogram result
+        result->shaderExpr = Shader::newOpacity(result, result->shaderExpr, opacity);
+
+        composite->appendChild(result); // source image (base)
+        composite->appendChild(bg);     // histogram at reduced opacity (on top)
+
+        return composite;
     }
 
 } // namespace IPCore
