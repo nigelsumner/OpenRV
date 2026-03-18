@@ -2309,7 +2309,7 @@ namespace IPCore
 #ifdef PLATFORM_DARWIN
         try
         {
-            if (!baseContext.norender) // && root->isHistogram)
+            if (!baseContext.norender && root->isHistogram)
             {
                 ConstFBOVector childrenFBO;
                 for (IPImage* child = root->children; child; child = child->next)

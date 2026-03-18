@@ -6537,8 +6537,7 @@ global bool debugGC = false;
             menuItem("Look CDL", "", "source_category", ~toggleLookCDL, isLookCDLActiveState),
             menuSeparator(),
             menuItem("Invert", "key-down--I", "source_category", ~toggleInvert, isInvert),
-            //  RVHistogram node deprecated to remove from GUI for now
-            // MenuItem {"Normalize", toggleNormalizeColor, nil, isNormalizingColor},
+            menuItem("Histogram", "", "source_category", toggleNormalizeColor, isNormalizingColor),
             menuSeparator(),
             menuText("Interactive Edit"),
             menuItem("    Gamma", "key-down--y", "source_category", gammaMode, videoSourcesAndNodeExistState("RVColor")),

@@ -54,6 +54,7 @@
 #include <IPCore/SessionIPNode.h>
 #include <IPCore/SoundTrackIPNode.h>
 #include <IPCore/Transform2DIPNode.h>
+#include <IPCore/HistogramIPNode.h>
 #include <ICCNodes/ICCDefinitions.h>
 
 namespace Rv
@@ -171,7 +172,10 @@ namespace Rv
             NodeDefinition* def = new NodeDefinition("RVColorPipelineGroup", 1, true, "pipeline", newIPNode<PipelineGroupIPNode>,
                                                      "Managed Single Input Pipeline for Source Color", "", emptyIcon, false);
 
-            def->declareProperty<StringProperty>("defaults.pipeline", "RVColor");
+            vector<string> colorDefaults;
+            colorDefaults.push_back("RVColor");
+            colorDefaults.push_back("RVHistogram");
+            def->declareProperty<StringProperty>("defaults.pipeline", colorDefaults);
             m->addDefinition(def);
         }
 
@@ -299,6 +303,8 @@ namespace Rv
         }
 
         m->addDefinition(new NodeDefinition("RVLensWarp", 1, false, "lensWarp", newIPNode<LensWarpIPNode>, "", "", emptyIcon, false));
+
+        m->addDefinition(new NodeDefinition("RVHistogram", 1, false, "RVHistogram", newIPNode<HistogramIPNode>, "", "", emptyIcon, false));
 
         m->addDefinition(
             new NodeDefinition("RVUnsharpMask", 1, false, "unsharpMask", newIPNode<UnsharpMaskIPNode>, "", "", emptyIcon, true));
