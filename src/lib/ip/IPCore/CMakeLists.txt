@@ -187,6 +187,8 @@ SET(_shaders
     ColorShadow
     ColorVibrance
     Histogram
+    Waveform
+    WaveformParade
     ICCLinearSRGB
 )
 
@@ -196,7 +198,7 @@ LIST(APPEND _sources ${_cooked_shaders})
 
 # Create CL Kernels
 SET(_cl_kernels
-    Histogram48k Histogram32k Histogram16k
+    Histogram48k Histogram32k Histogram16k Waveform48k Waveform32k Waveform16k
 )
 QUOTE_FILES(_cooked_cl_kernels INPUT_LIST ${_cl_kernels} SUFFIX "cl")
 LIST(APPEND _sources ${_cooked_cl_kernels})

@@ -916,6 +916,86 @@ global let toggleFlip = toggleIntProp("#RVTransform2D.transform.flip"),
     return DisabledMenuState;
 }
 
+\: toggleWaveform (void; Event ev)
+{
+    try
+    {
+        int active = getIntProperty("#RVWaveform.node.active").front();
+        int mode = getIntProperty("#RVWaveform.node.mode").front();
+        if (active == 1 && mode == 0)
+        {
+            setIntProperty("#RVWaveform.node.active", int[] {0}, true);
+        }
+        else
+        {
+            setIntProperty("#RVWaveform.node.active", int[] {1}, true);
+            setIntProperty("#RVWaveform.node.mode", int[] {0}, true);
+        }
+        reload();
+    }
+    catch (exception exc)
+    {
+        let sexc = string(exc);
+        displayFeedback("Unable to toggle waveform: %s" % sexc);
+    }
+}
+
+\: toggleWaveformParade (void; Event ev)
+{
+    try
+    {
+        int active = getIntProperty("#RVWaveform.node.active").front();
+        int mode = getIntProperty("#RVWaveform.node.mode").front();
+        if (active == 1 && mode == 1)
+        {
+            setIntProperty("#RVWaveform.node.active", int[] {0}, true);
+        }
+        else
+        {
+            setIntProperty("#RVWaveform.node.active", int[] {1}, true);
+            setIntProperty("#RVWaveform.node.mode", int[] {1}, true);
+        }
+        reload();
+    }
+    catch (exception exc)
+    {
+        let sexc = string(exc);
+        displayFeedback("Unable to toggle waveform parade: %s" % sexc);
+    }
+}
+
+\: isWaveformActive (int;)
+{
+    try
+    {
+        return if (getIntProperty("#RVWaveform.node.active").front() == 1 &&
+                   getIntProperty("#RVWaveform.node.mode").front() == 0)
+                then CheckedMenuState
+                else UncheckedMenuState;
+    }
+    catch (...)
+    {
+        ; /* nothing */
+    }
+    return DisabledMenuState;
+}
+
+\: isWaveformParadeActive (int;)
+{
+    try
+    {
+        return if (getIntProperty("#RVWaveform.node.active").front() == 1 &&
+                   getIntProperty("#RVWaveform.node.mode").front() == 1)
+                then CheckedMenuState
+                else UncheckedMenuState;
+    }
+    catch (...)
+    {
+        ; /* nothing */
+    }
+    return DisabledMenuState;
+}
+
 \: isOtioEnabled (bool;)
 {
     string result = sendInternalEvent("otio-import-enabled");
@@ -6538,6 +6618,8 @@ global bool debugGC = false;
             menuSeparator(),
             menuItem("Invert", "key-down--I", "source_category", ~toggleInvert, isInvert),
             menuItem("Histogram", "", "source_category", toggleNormalizeColor, isNormalizingColor),
+            menuItem("Waveform", "", "source_category", toggleWaveform, isWaveformActive),
+            menuItem("Waveform Parade", "", "source_category", toggleWaveformParade, isWaveformParadeActive),
             menuSeparator(),
             menuText("Interactive Edit"),
             menuItem("    Gamma", "key-down--y", "source_category", gammaMode, videoSourcesAndNodeExistState("RVColor")),

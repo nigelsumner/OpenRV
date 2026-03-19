@@ -98,6 +98,10 @@ extern const char* Histogram48k_cl;
 extern const char* Histogram32k_cl;
 extern const char* Histogram16k_cl;
 
+extern const char* Waveform48k_cl;
+extern const char* Waveform32k_cl;
+extern const char* Waveform16k_cl;
+
 namespace IPCore
 {
     using namespace std;
@@ -1067,6 +1071,7 @@ namespace IPCore
             {
                 createCLContexts();
                 compileCLHistogram();
+                compileCLWaveform();
             }
         }
         catch (...)
@@ -1213,6 +1218,142 @@ namespace IPCore
 
         clReleaseMemObject(clImage);
         clReleaseMemObject(histoOut);
+    }
+
+#define WAVEFORM_BIN_NO 256
+
+    void ImageRenderer::compileCLWaveform()
+    {
+        cl_int ret;
+        cl_ulong localMemSize;
+        ret = clGetDeviceInfo(m_clContext.deviceID, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL);
+
+        const char* waveSrc = NULL;
+        if (localMemSize <= 16 * 1024)
+            waveSrc = Waveform16k_cl;
+        else if (localMemSize <= 32 * 1024)
+            waveSrc = Waveform32k_cl;
+        else
+            waveSrc = Waveform48k_cl;
+
+        m_clContext.clWaveformProgram.program = clCreateProgramWithSource(m_clContext.clContext, 1, (const char**)&waveSrc, NULL, &ret);
+        printCLError(ret);
+
+        ret = clBuildProgram(m_clContext.clWaveformProgram.program, 1, &m_clContext.deviceID, NULL, NULL, NULL);
+        printCLError(ret);
+
+#ifdef NDEBUG
+#else
+        size_t len;
+        clGetProgramBuildInfo(m_clContext.clWaveformProgram.program, m_clContext.deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
+        vector<char> buffer(len);
+        clGetProgramBuildInfo(m_clContext.clWaveformProgram.program, m_clContext.deviceID, CL_PROGRAM_BUILD_LOG, len, &buffer[0], NULL);
+#endif
+
+        m_clContext.clWaveformProgram.kernels.push_back(clCreateKernel(m_clContext.clWaveformProgram.program, "waveform256_float4", &ret));
+        printCLError(ret);
+
+        m_clContext.clWaveformProgram.kernels.push_back(
+            clCreateKernel(m_clContext.clWaveformProgram.program, "mergeWaveform256_float4", &ret));
+        printCLError(ret);
+
+        size_t workGroupSize;
+        clGetKernelWorkGroupInfo(m_clContext.clWaveformProgram.kernels[0], m_clContext.deviceID, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t),
+                                 &workGroupSize, NULL);
+        m_clContext.waveformWorkGroupSize = workGroupSize;
+    }
+
+    void ImageRenderer::waveformOCL(cl_mem& image, cl_mem& waveOut, const size_t srcW, const size_t srcH, const size_t outW,
+                                    const size_t outH, int mode) const
+    {
+        // Scatter pass: one workgroup per column, each workgroup covers all rows
+        size_t localSize = min(m_clContext.waveformWorkGroupSize, srcH);
+        if (localSize < 1)
+            localSize = 1;
+        size_t globalThreads[3] = {localSize * outW, 1, 1};
+        size_t localThreads[3] = {localSize, 1, 1};
+
+        cl_int err;
+        cl_uint w = (cl_uint)srcW;
+        cl_uint h = (cl_uint)srcH;
+
+        // Intermediate buffer: outW × WAVEFORM_BIN_NO × 4 channels (R,G,B,count) as uint
+        cl_mem subWave = clCreateBuffer(m_clContext.clContext, CL_MEM_READ_WRITE, 4 * WAVEFORM_BIN_NO * outW * sizeof(cl_uint), NULL, &err);
+        printCLError(err);
+
+        // Clear intermediate buffer
+        cl_uint zero = 0;
+        err = clEnqueueFillBuffer(m_clContext.commandQueue, subWave, &zero, sizeof(cl_uint), 0,
+                                  4 * WAVEFORM_BIN_NO * outW * sizeof(cl_uint), 0, NULL, NULL);
+        printCLError(err);
+
+        cl_uint clMode = (cl_uint)mode;
+
+        vector<pair<size_t, const void*>> args;
+        args.push_back(make_pair(sizeof(image), (void*)&image));
+        args.push_back(make_pair(sizeof(subWave), (void*)&subWave));
+        args.push_back(make_pair(sizeof(cl_uint), (void*)&w));
+        args.push_back(make_pair(sizeof(cl_uint), (void*)&h));
+        args.push_back(make_pair(sizeof(cl_uint), (void*)&clMode));
+
+        executeCLKernel(m_clContext, m_clContext.clWaveformProgram.kernels[0], globalThreads, localThreads, args);
+
+        // Merge pass: globalSize = (outW, WAVEFORM_BIN_NO)
+        size_t mergeGlobal[3] = {outW, WAVEFORM_BIN_NO, 1};
+        size_t mergeLocal[3] = {1, WAVEFORM_BIN_NO, 1};
+
+        vector<pair<size_t, const void*>> args2;
+        cl_uint outWidth = (cl_uint)outW;
+        float imgSizef = (float)srcH;
+        args2.push_back(make_pair(sizeof(cl_mem), (void*)&subWave));
+        args2.push_back(make_pair(sizeof(cl_mem), (void*)&waveOut));
+        args2.push_back(make_pair(sizeof(cl_uint), (void*)&outWidth));
+        args2.push_back(make_pair(sizeof(cl_float), (void*)&imgSizef));
+
+        executeCLKernel(m_clContext, m_clContext.clWaveformProgram.kernels[1], mergeGlobal, mergeLocal, args2);
+
+        clReleaseMemObject(subWave);
+    }
+
+    void ImageRenderer::computeWaveform(const ConstFBOVector& childrenFBO, const GLFBO* resultFBO, int mode) const
+    {
+        assert(childrenFBO.size() == 1);
+        const GLFBO* fbo = childrenFBO[0];
+
+        assert(fbo->hasColorAttachment());
+        cl_int err;
+#ifdef CL_VERSION_1_2
+        cl_mem clImage = clCreateFromGLTexture(m_clContext.clContext, CL_MEM_READ_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, fbo->colorID(0), &err);
+#else
+        cl_mem clImage =
+            clCreateFromGLTexture2D(m_clContext.clContext, CL_MEM_READ_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, fbo->colorID(0), &err);
+#endif
+        printCLError(err);
+        err = clEnqueueAcquireGLObjects(m_clContext.commandQueue, 1, &clImage, 0, 0, 0);
+        printCLError(err);
+
+        assert(resultFBO->hasColorAttachment());
+#ifdef CL_VERSION_1_2
+        cl_mem waveOut =
+            clCreateFromGLTexture(m_clContext.clContext, CL_MEM_WRITE_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, resultFBO->colorID(0), &err);
+#else
+        cl_mem waveOut =
+            clCreateFromGLTexture2D(m_clContext.clContext, CL_MEM_WRITE_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, resultFBO->colorID(0), &err);
+#endif
+        printCLError(err);
+        err = clEnqueueAcquireGLObjects(m_clContext.commandQueue, 1, &waveOut, 0, 0, 0);
+        printCLError(err);
+
+        waveformOCL(clImage, waveOut, fbo->width(), fbo->height(), resultFBO->width(), resultFBO->height(), mode);
+
+        err = clEnqueueReleaseGLObjects(m_clContext.commandQueue, 1, &clImage, 0, 0, 0);
+        printCLError(err);
+        err = clEnqueueReleaseGLObjects(m_clContext.commandQueue, 1, &waveOut, 0, 0, 0);
+        printCLError(err);
+        clFinish(m_clContext.commandQueue);
+
+        clReleaseMemObject(clImage);
+        clReleaseMemObject(waveOut);
     }
 #endif
 
@@ -2319,6 +2460,17 @@ namespace IPCore
                     childrenFBO.push_back(ifbo->fbo());
                 }
                 computeHistogram(childrenFBO, fbo);
+            }
+            if (!baseContext.norender && root->isWaveform)
+            {
+                ConstFBOVector childrenFBO;
+                for (IPImage* child = root->children; child; child = child->next)
+                {
+                    ImageFBO* ifbo = findExistingImageFBO(child);
+                    assert(ifbo);
+                    childrenFBO.push_back(ifbo->fbo());
+                }
+                computeWaveform(childrenFBO, fbo, root->waveformMode);
             }
         }
         catch (...)

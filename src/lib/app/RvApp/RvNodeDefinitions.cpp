@@ -55,6 +55,7 @@
 #include <IPCore/SoundTrackIPNode.h>
 #include <IPCore/Transform2DIPNode.h>
 #include <IPCore/HistogramIPNode.h>
+#include <IPCore/WaveformIPNode.h>
 #include <ICCNodes/ICCDefinitions.h>
 
 namespace Rv
@@ -175,6 +176,7 @@ namespace Rv
             vector<string> colorDefaults;
             colorDefaults.push_back("RVColor");
             colorDefaults.push_back("RVHistogram");
+            colorDefaults.push_back("RVWaveform");
             def->declareProperty<StringProperty>("defaults.pipeline", colorDefaults);
             m->addDefinition(def);
         }
@@ -305,6 +307,8 @@ namespace Rv
         m->addDefinition(new NodeDefinition("RVLensWarp", 1, false, "lensWarp", newIPNode<LensWarpIPNode>, "", "", emptyIcon, false));
 
         m->addDefinition(new NodeDefinition("RVHistogram", 1, false, "RVHistogram", newIPNode<HistogramIPNode>, "", "", emptyIcon, false));
+
+        m->addDefinition(new NodeDefinition("RVWaveform", 1, false, "RVWaveform", newIPNode<WaveformIPNode>, "", "", emptyIcon, false));
 
         m->addDefinition(
             new NodeDefinition("RVUnsharpMask", 1, false, "unsharpMask", newIPNode<UnsharpMaskIPNode>, "", "", emptyIcon, true));

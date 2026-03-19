@@ -22,12 +22,11 @@ vec4 Histogram (const in inputImage in0,
     // Black background — alpha 1.0 so the overlay darkens the source
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
-    // Vertical grid lines (10 evenly spaced, muted gold)
-    // Distance to nearest grid line in FBO pixels — always catches exactly 1 pixel
+    // Vertical grid lines (10 evenly spaced, antialiased, semi-transparent)
     float gridCount = 10.0;
-    float distToLine = abs(fract(normX * gridCount + 0.5) - 0.5) * winSize.x / gridCount;
-    if (distToLine < 0.7)
-        return vec4(0.18, 0.16, 0.06, 1.0);
+    float gridPitch = winSize.x / gridCount;
+    float distToLine = abs(fract(normX * gridCount + 0.5) - 0.5) * gridPitch;
+    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
 
     // 3 panels in normalized Y: bottom=Blue, middle=Green, top=Red
     float panelF = normY * 3.0;
@@ -39,7 +38,11 @@ vec4 Histogram (const in inputImage in0,
     float atSep1 = step(1.0 / 3.0 - sepW, normY) * step(normY, 1.0 / 3.0 + sepW);
     float atSep2 = step(2.0 / 3.0 - sepW, normY) * step(normY, 2.0 / 3.0 + sepW);
     if (atSep1 + atSep2 > 0.0)
-        return vec4(0.15, 0.15, 0.15, 1.0);
+    {
+        vec3 sepCol = vec3(0.15);
+        vec3 lineCol = vec3(0.35, 0.35, 0.20);
+        return vec4(mix(sepCol, lineCol, lineAlpha), 1.0);
+    }
 
     // Normalize bin values; sqrt compresses range for visibility
     vec3 nh = sqrt(h) * 2.0;
@@ -62,9 +65,11 @@ vec4 Histogram (const in inputImage in0,
         vec3 bright = vec3(0.42 * isR, 0.27 * isG, 0.35 * isB);
 
         vec3 col = mix(fill, bright, edge);
+        vec3 lineCol = vec3(0.35, 0.35, 0.20);
+        col = mix(col, lineCol, lineAlpha);
         return vec4(col, 1.0);
     }
 
-    return bg;
+    vec3 lineCol = vec3(0.35, 0.35, 0.20);
+    return vec4(mix(bg.rgb, lineCol, lineAlpha), 1.0);
 }
-

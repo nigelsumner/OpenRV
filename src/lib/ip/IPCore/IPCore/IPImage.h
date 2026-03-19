@@ -266,6 +266,8 @@ namespace IPCore
 
         void setHistogram(bool h) { isHistogram = h; }
 
+        void setWaveform(bool w) { isWaveform = w; }
+
         //
         //  IPImage children
         //
@@ -424,6 +426,8 @@ namespace IPCore
         bool invalid : 1;       // image represents an out-of-range image
         bool useBackground : 1; // draws background for this image
         bool isHistogram : 1;
+        bool isWaveform : 1;
+        int waveformMode;
 
         size_t hashCount;
 

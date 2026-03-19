@@ -67,6 +67,8 @@ namespace IPCore
         samplerType = Rect2DSampler;
         hashCount = 0;
         isHistogram = false;
+        isWaveform = false;
+        waveformMode = 0;
         isCropped = false;
         cropStartX = 0;
         cropStartY = 0;

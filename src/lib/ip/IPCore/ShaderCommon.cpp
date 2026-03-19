@@ -162,6 +162,8 @@ extern const char* FilterUnsharpMask_glsl;
 extern const char* FilterNoiseReduction_glsl;
 extern const char* FilterClarity_glsl;
 extern const char* Histogram_glsl;
+extern const char* Waveform_glsl;
+extern const char* WaveformParade_glsl;
 extern const char* ICCLinearSRGB_glsl;
 
 namespace IPCore
@@ -353,6 +355,8 @@ namespace IPCore
         static Function* Shader_FilterNoiseReduction = 0;
         static Function* Shader_FilterClarity = 0;
         static Function* Shader_Histogram = 0;
+        static Function* Shader_Waveform = 0;
+        static Function* Shader_WaveformParade = 0;
         static Function* Shader_ICCLinearSRGB = 0;
 
 // NOTE: SUBOPTIMAL: the value here MUST be greater than or equal to
@@ -517,6 +521,33 @@ namespace IPCore
             }
 
             return Shader_Histogram;
+        }
+
+        Function* waveform()
+        {
+            if (!Shader_Waveform)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_Waveform = new Shader::Function("Waveform", Waveform_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_Waveform;
+        }
+
+        Function* waveformParade()
+        {
+            if (!Shader_WaveformParade)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_WaveformParade =
+                    new Shader::Function("WaveformParade", WaveformParade_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_WaveformParade;
         }
 
         Function* filterGaussianVertical()
@@ -2677,6 +2708,38 @@ namespace IPCore
         Expression* newHistogram(const IPImage* image, const std::vector<Expression*>& FA1)
         {
             const Function* F = histogram();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newWaveform(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = waveform();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newWaveformParade(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = waveformParade();
             ArgumentVector args(F->parameters().size());
             int size = FA1.size();
             assert(size == 1);

@@ -5,7 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 //******************************************************************************
-#include <IPCore/HistogramIPNode.h>
+#include <IPCore/WaveformIPNode.h>
 #include <IPCore/Exception.h>
 #include <IPCore/ShaderCommon.h>
 #include <TwkMath/Function.h>
@@ -24,19 +24,18 @@ namespace IPCore
     using namespace TwkMath;
     using namespace TwkFB;
 
-    HistogramIPNode::HistogramIPNode(const std::string& name, const NodeDefinition* def, IPGraph* graph, GroupIPNode* group)
+    WaveformIPNode::WaveformIPNode(const std::string& name, const NodeDefinition* def, IPGraph* graph, GroupIPNode* group)
         : IPNode(name, def, graph, group)
     {
         m_active = declareProperty<IntProperty>("node.active", 0);
-        m_height = declareProperty<IntProperty>("node.height", 600);
+        m_mode = declareProperty<IntProperty>("node.mode", 0);
         m_opacity = declareProperty<FloatProperty>("node.opacity", 0.95f);
     }
 
-    HistogramIPNode::~HistogramIPNode() {}
+    WaveformIPNode::~WaveformIPNode() {}
 
-    IPImage* HistogramIPNode::evaluate(const Context& context)
+    IPImage* WaveformIPNode::evaluate(const Context& context)
     {
-
         int frame = context.frame;
         IPImage* image = IPNode::evaluate(context);
         if (!image)
@@ -44,7 +43,9 @@ namespace IPCore
         if (m_active && !m_active->front())
             return image;
 
-        float opacity = m_opacity ? m_opacity->front() : 0.95f;
+        // float opacity = m_opacity ? m_opacity->front() : 0.95f;
+        float opacity = 1;
+        int mode = m_mode ? m_mode->front() : 0;
 
         // Second evaluation for the clean background pass
         IPImage* bgImage = IPNode::evaluate(context);
@@ -60,38 +61,27 @@ namespace IPCore
         }
         newImage->shaderExpr = Shader::newColorLinearToSRGB(newImage->shaderExpr);
 
-        IPImage* image2 = NULL;
-        size_t scale = max(newImage->width / 300, newImage->height / 300);
-        if (scale > 1)
-        {
-            const size_t newWidth = newImage->width / scale;
-            const size_t newHeight = newImage->height / scale;
+        // Wrap source in an intermediate for CL/GL interop (same dimensions, no
+        // downscaling).  A height-only downscale would letterbox the content due
+        // to BlendRenderType preserving aspect ratio, leaving black columns on
+        // both sides of the FBO — which the per-column CL kernel sees as empty.
+        IPImage* image2 = new IPImage(this, IPImage::BlendRenderType, newImage->width, newImage->height, 1.0, IPImage::IntermediateBuffer);
+        image2->shaderExpr = Shader::newSourceRGBA(image2);
+        image2->appendChild(newImage);
 
-            IPImage* smallImage = new IPImage(this, IPImage::BlendRenderType, newWidth, newHeight, 1.0, IPImage::IntermediateBuffer);
-            smallImage->shaderExpr = Shader::newSourceRGBA(smallImage);
-            smallImage->appendChild(newImage);
-            image2 = smallImage;
-        }
-        else
-        {
-            // this is the case where the image has a fb, and cannot be
-            // converted by convertBlend func
-            IPImage* insertImage =
-                new IPImage(this, IPImage::BlendRenderType, newImage->width, newImage->height, 1.0, IPImage::IntermediateBuffer);
-            insertImage->shaderExpr = Shader::newSourceRGBA(insertImage);
-            insertImage->appendChild(newImage);
-            image2 = insertImage;
-        }
+        // Waveform data buffer: sourceWidth × 256 (columns × intensity bins)
+        // CL kernel writes accumulated RGB into this texture
+        size_t dataWidth = image2->width;
+        size_t dataHeight = 256;
 
-        size_t width = 256;
+        IPImage* waveData =
+            new IPImage(this, IPImage::BlendRenderType, dataWidth, dataHeight, 1.0, IPImage::DataBuffer, IPImage::FloatDataType);
+        waveData->setWaveform(true);
+        waveData->waveformMode = mode;
+        waveData->appendChild(image2);
+        waveData->shaderExpr = Shader::newSourceRGBA(waveData);
 
-        IPImage* histo = new IPImage(this, IPImage::BlendRenderType, width, 1, 1.0, IPImage::DataBuffer, IPImage::FloatDataType);
-        histo->setHistogram(true);
-        histo->appendChild(image2);
-        histo->shaderExpr = Shader::newSourceRGBA(histo);
-
-        // this image will have a shaderExpr that uses the histogram result to
-        // render a histogram — match the source image dimensions
+        // Output at source image dimensions
         size_t outWidth = newImage->width;
         size_t outHeight = newImage->height;
 
@@ -99,16 +89,19 @@ namespace IPCore
 
         IPImageVector images;
         IPImageSet modifiedImages;
-        images.push_back(histo);
+        images.push_back(waveData);
         convertBlendRenderTypeToIntermediate(images, modifiedImages);
         Shader::ExpressionVector inExpressions;
         assembleMergeExpressions(result, images, modifiedImages, false, inExpressions);
 
         result->shaderExpr = Shader::newSourceRGBA(result);
-        result->mergeExpr = Shader::newHistogram(result, inExpressions);
-        result->appendChild(histo);
+        if (mode == 1)
+            result->mergeExpr = Shader::newWaveformParade(result, inExpressions);
+        else
+            result->mergeExpr = Shader::newWaveform(result, inExpressions);
+        result->appendChild(waveData);
 
-        // Composite: source as base, histogram overlaid at reduced opacity
+        // Composite: source as base, waveform overlaid at reduced opacity
         IPImage* composite = new IPImage(this, IPImage::BlendRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
         composite->blendMode = IPImage::Over;
 
@@ -117,11 +110,11 @@ namespace IPCore
         bg->shaderExpr = Shader::newSourceRGBA(bg);
         bg->appendChild(bgImage);
 
-        // Apply opacity to histogram result
+        // Apply opacity to waveform result
         result->shaderExpr = Shader::newOpacity(result, result->shaderExpr, opacity);
 
-        composite->appendChild(result); // source image (base)
-        composite->appendChild(bg);     // histogram at reduced opacity (on top)
+        composite->appendChild(result); // waveform at reduced opacity (on top)
+        composite->appendChild(bg);     // source image (base)
 
         return composite;
     }
