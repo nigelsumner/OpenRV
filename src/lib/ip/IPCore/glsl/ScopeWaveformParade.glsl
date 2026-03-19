@@ -62,9 +62,11 @@ vec4 ScopeWaveformParade (const in inputImage in0,
     if (val < 0.01)
         return vec4(mix(bg.rgb, lineCol, lineAlpha), 1.0);
 
-    // Monochrome channel colouring
-    vec3 col = vec3(val * isR, val * isG, val * isB);
-    col = clamp(col * 1.2, 0.0, 1.0);
+    // Channel colour that transitions to white at peak density (Resolve-style)
+    vec3 channelCol = vec3(isR, isG, isB);
+    float white = pow(val, 2.5);
+    vec3 col = val * channelCol + white * (vec3(1.0) - channelCol);
+    col = clamp(col, 0.0, 1.0);
 
     // Blend grid lines
     col = mix(col, lineCol, lineAlpha);
