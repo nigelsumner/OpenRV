@@ -7,7 +7,7 @@
 // Input: 2D waveform data texture (sourceWidth x 256), each texel holds
 // accumulated RGB colour for that (column, intensity_bin).
 //
-vec4 WaveformParade (const in inputImage in0,
+vec4 ScopeWaveformParade (const in inputImage in0,
                      const in outputImage win)
 {
     vec2 winSize  = win.size();
@@ -17,6 +17,13 @@ vec4 WaveformParade (const in inputImage in0,
 
     // Black background
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
+
+    // Horizontal grid lines (10 evenly spaced, antialiased, semi-transparent amber)
+    float gridCount = 10.0;
+    float gridPitch = winSize.y / gridCount;
+    float distToLine = abs(fract(normY * gridCount + 0.5) - 0.5) * gridPitch;
+    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
+    vec3 lineCol = vec3(0.35, 0.35, 0.20);
 
     // 3 panels side by side: left=Red, centre=Green, right=Blue
     float panelF  = normX * 3.0;
@@ -28,7 +35,10 @@ vec4 WaveformParade (const in inputImage in0,
     float atSep1 = step(1.0 / 3.0 - sepW, normX) * step(normX, 1.0 / 3.0 + sepW);
     float atSep2 = step(2.0 / 3.0 - sepW, normX) * step(normX, 2.0 / 3.0 + sepW);
     if (atSep1 + atSep2 > 0.0)
-        return vec4(0.15, 0.15, 0.15, 1.0);
+    {
+        vec3 sepCol = vec3(0.15);
+        return vec4(mix(sepCol, lineCol, lineAlpha), 1.0);
+    }
 
     // Map local panel X to data texture column
     float targetX = localX * dataSize.x;
@@ -50,11 +60,14 @@ vec4 WaveformParade (const in inputImage in0,
 
     // Threshold: skip very dim bins for a cleaner look
     if (val < 0.01)
-        return bg;
+        return vec4(mix(bg.rgb, lineCol, lineAlpha), 1.0);
 
     // Monochrome channel colouring
     vec3 col = vec3(val * isR, val * isG, val * isB);
     col = clamp(col * 1.2, 0.0, 1.0);
+
+    // Blend grid lines
+    col = mix(col, lineCol, lineAlpha);
 
     return vec4(col, 1.0);
 }

@@ -5,8 +5,8 @@
 //
 // DaVinci Resolve-style 3-panel parade histogram (R / G / B stacked)
 //
-vec4 Histogram (const in inputImage in0,
-                const in outputImage win)
+vec4 ScopeHistogramParade (const in inputImage in0,
+                      const in outputImage win)
 {
     vec2 winSize  = win.size();
     vec2 dataSize = in0.size();

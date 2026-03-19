@@ -94,13 +94,13 @@
 //  using them again!
 //
 
-extern const char* Histogram48k_cl;
-extern const char* Histogram32k_cl;
-extern const char* Histogram16k_cl;
+extern const char* ScopeHistogram48k_cl;
+extern const char* ScopeHistogram32k_cl;
+extern const char* ScopeHistogram16k_cl;
 
-extern const char* Waveform48k_cl;
-extern const char* Waveform32k_cl;
-extern const char* Waveform16k_cl;
+extern const char* ScopeWaveform48k_cl;
+extern const char* ScopeWaveform32k_cl;
+extern const char* ScopeWaveform16k_cl;
 
 namespace IPCore
 {
@@ -1028,11 +1028,11 @@ namespace IPCore
 
         const char* histoSrc = NULL;
         if (localMemSize <= 16 * 1024)
-            histoSrc = Histogram16k_cl;
+            histoSrc = ScopeHistogram16k_cl;
         else if (localMemSize <= 32 * 1024)
-            histoSrc = Histogram32k_cl;
+            histoSrc = ScopeHistogram32k_cl;
         else
-            histoSrc = Histogram48k_cl;
+            histoSrc = ScopeHistogram48k_cl;
 
         m_clContext.clProgram.program = clCreateProgramWithSource(m_clContext.clContext, 1, (const char**)&histoSrc, NULL, &ret);
         printCLError(ret);
@@ -1230,11 +1230,11 @@ namespace IPCore
 
         const char* waveSrc = NULL;
         if (localMemSize <= 16 * 1024)
-            waveSrc = Waveform16k_cl;
+            waveSrc = ScopeWaveform16k_cl;
         else if (localMemSize <= 32 * 1024)
-            waveSrc = Waveform32k_cl;
+            waveSrc = ScopeWaveform32k_cl;
         else
-            waveSrc = Waveform48k_cl;
+            waveSrc = ScopeWaveform48k_cl;
 
         m_clContext.clWaveformProgram.program = clCreateProgramWithSource(m_clContext.clContext, 1, (const char**)&waveSrc, NULL, &ret);
         printCLError(ret);

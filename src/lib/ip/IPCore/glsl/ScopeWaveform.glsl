@@ -7,7 +7,7 @@
 // Input: 2D waveform data texture (sourceWidth x 256), each texel holds
 // accumulated RGB colour for that (column, intensity_bin).
 //
-vec4 Waveform (const in inputImage in0,
+vec4 ScopeWaveform (const in inputImage in0,
                const in outputImage win)
 {
     vec2 winSize  = win.size();
@@ -25,6 +25,13 @@ vec4 Waveform (const in inputImage in0,
     // Black background
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
+    // Horizontal grid lines (10 evenly spaced, antialiased, semi-transparent amber)
+    float gridCount = 10.0;
+    float gridPitch = winSize.y / gridCount;
+    float distToLine = abs(fract(normY * gridCount + 0.5) - 0.5) * gridPitch;
+    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
+    vec3 lineCol = vec3(0.35, 0.35, 0.20);
+
     // Tone-map the accumulated colour
     float gain = 8.0;
     vec3 mapped = vec3(1.0) - exp(-gain * acc.rgb);
@@ -32,11 +39,14 @@ vec4 Waveform (const in inputImage in0,
     // Threshold: skip very dim bins for a cleaner look
     float lum = dot(mapped, vec3(0.2126, 0.7152, 0.0722));
     if (lum < 0.01)
-        return bg;
+        return vec4(mix(bg.rgb, lineCol, lineAlpha), 1.0);
 
     // Chromatic colouring with slight saturation boost
     vec3 col = mapped * 1.2;
     col = clamp(col, 0.0, 1.0);
+
+    // Blend grid lines
+    col = mix(col, lineCol, lineAlpha);
 
     return vec4(col, 1.0);
 }
