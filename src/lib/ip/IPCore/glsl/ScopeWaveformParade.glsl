@@ -47,16 +47,17 @@ vec4 ScopeWaveformParade (const in inputImage in0,
     // Sample the waveform accumulation at this (column, intensity)
     vec4 acc = in0(vec2(targetX - in0.st.x, targetY - in0.st.y));
 
-    // Tone-map the accumulated colour
-    float gain = 8.0;
-    vec3 mapped = vec3(1.0) - exp(-gain * acc.rgb);
-
     // Select channel for this panel
     float isR = step(panel, 0.5);
     float isG = step(0.5, panel) * step(panel, 1.5);
     float isB = step(1.5, panel);
 
-    float val = mapped.r * isR + mapped.g * isG + mapped.b * isB;
+    // Read the per-channel density (count-based, normalized by image height)
+    float density = acc.r * isR + acc.g * isG + acc.b * isB;
+
+    // Tone-map density with moderate gain
+    float gain = 4.0;
+    float val = 1.0 - exp(-gain * density);
 
     // Threshold: skip very dim bins for a cleaner look
     if (val < 0.01)

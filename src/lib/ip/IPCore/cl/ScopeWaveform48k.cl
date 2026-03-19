@@ -63,15 +63,16 @@ void waveform256_float4(read_only image2d_t image,
                 float frac = fbin - (float)bin0;
                 float w0 = 1.0f - frac;
                 float w1 = frac;
-                uint val = (uint)(channels[ch] * 1024.0f);
 
+                // Count-based: accumulate pixel count, not value.
+                // The Y-bin already encodes the intensity.
                 uint loc0 = (bin0 * CHANNEL + ch) * NBANKS + bankOffset;
-                (void)atomic_add(subWaveform + loc0, (uint)(w0 * (float)val));
+                (void)atomic_add(subWaveform + loc0, (uint)(w0 * 1024.0f));
 
                 if (bin1 != bin0)
                 {
                     uint loc1 = (bin1 * CHANNEL + ch) * NBANKS + bankOffset;
-                    (void)atomic_add(subWaveform + loc1, (uint)(w1 * (float)val));
+                    (void)atomic_add(subWaveform + loc1, (uint)(w1 * 1024.0f));
                 }
             }
         }
