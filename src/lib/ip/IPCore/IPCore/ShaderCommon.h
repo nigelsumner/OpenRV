@@ -175,7 +175,15 @@ namespace IPCore
 
         Expression* newBlend(const IPImage*, const std::vector<Expression*>&, const IPImage::BlendMode);
 
-        Expression* newHistogram(const IPImage*, const std::vector<Expression*>&);
+        Expression* newScopeHistogram(const IPImage*, const std::vector<Expression*>&);
+
+        Expression* newScopeHistogramParade(const IPImage*, const std::vector<Expression*>&);
+
+        Expression* newScopeWaveform(const IPImage*, const std::vector<Expression*>&);
+
+        Expression* newScopeWaveformParade(const IPImage*, const std::vector<Expression*>&);
+
+        Expression* newScopeComposite(const IPImage*, const std::vector<Expression*>&, float opacity, float useAlpha);
 
         Expression* newLensWarp(const IPImage*, Expression*, float k1, float k2, float k3, float d, float p1, float p2,
                                 const TwkMath::Vec2f& center, const TwkMath::Vec2f& f, const TwkMath::Vec2f& cropRatio);

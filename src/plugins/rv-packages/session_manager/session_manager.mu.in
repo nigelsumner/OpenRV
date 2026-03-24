@@ -2976,7 +2976,8 @@ class: SessionManagerMode : MinorMode
                       ("RVStackGroup", "photoalbum_48x48.png"),
                       ("RVSequenceGroup", "playlist_48x48.png"),
                       ("RVFolderGroup", "foldr_48x48.png"),
-                      ("RVFileSource", "videofile_48x48.png")] )
+                      ("RVFileSource", "videofile_48x48.png"),
+                      ("RVScopeViewable", "scope_48x48.png")] )
         {
             _typeIcons.push_back( (t._0, auxIcon(t._1, true)) );
         }
@@ -3014,7 +3015,8 @@ class: SessionManagerMode : MinorMode
             addSwitch        = addMenu.addAction(auxIcon("shuffle_48x48.png", true), "Switch"),
             addFolder        = addMenu.addAction(auxIcon("foldr_48x48.png", true), "Folder"),
             addLayout        = addMenu.addAction(auxIcon("lgicn_48x48.png", true), "Layout"),
-            addRetime        = addMenu.addAction(auxIcon("tempo_48x48.png", true), "Retime");
+            addRetime        = addMenu.addAction(auxIcon("tempo_48x48.png", true), "Retime"),
+            addScope         = addMenu.addAction(auxIcon("scope_48x48.png", true), "Scope");
 
         QAction addColorize  = nil;
         QAction addOCIO      = nil;
@@ -3049,6 +3051,7 @@ class: SessionManagerMode : MinorMode
                                 (addSequence, "RVSequenceGroup"),
                                 (addRetime, "RVRetimeGroup"),
                                 (addSwitch, "RVSwitchGroup"),
+                                (addScope, "RVScopeViewable"),
                                 (addCBars, "smptebars,%s.movieproc"),
                                 (addSRGBCChart, "srgbcolorchart,%s.movieproc"),
                                 (addACESCChart, "acescolorchart,%s.movieproc"),
@@ -3066,6 +3069,7 @@ class: SessionManagerMode : MinorMode
                                 (addSequence, "RVSequenceGroup"),
                                 (addRetime, "RVRetimeGroup"),
                                 (addSwitch, "RVSwitchGroup"),
+                                (addScope, "RVScopeViewable"),
                                 (addColorize, "RVColor"),
                                 (addOCIO, "RVOCIO"),
                                 (addDynamic, "Dynamic"),
@@ -3085,6 +3089,7 @@ class: SessionManagerMode : MinorMode
                                 (addSequence, "RVSequenceGroup"),
                                 (addRetime, "RVRetimeGroup"),
                                 (addSwitch, "RVSwitchGroup"),
+                                (addScope, "RVScopeViewable"),
                                 (addColorize, "RVColor"),
                                 (addOCIO, "RVOCIO"),
                                 (addUserNode, ""),

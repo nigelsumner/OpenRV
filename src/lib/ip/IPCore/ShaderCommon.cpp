@@ -161,7 +161,11 @@ extern const char* FilterGaussianVerticalFast_glsl;
 extern const char* FilterUnsharpMask_glsl;
 extern const char* FilterNoiseReduction_glsl;
 extern const char* FilterClarity_glsl;
-extern const char* Histogram_glsl;
+extern const char* ScopeHistogram_glsl;
+extern const char* ScopeHistogramParade_glsl;
+extern const char* ScopeWaveform_glsl;
+extern const char* ScopeWaveformParade_glsl;
+extern const char* ScopeComposite_glsl;
 extern const char* ICCLinearSRGB_glsl;
 
 namespace IPCore
@@ -352,7 +356,11 @@ namespace IPCore
         static Function* Shader_FilterUnsharpMask = 0;
         static Function* Shader_FilterNoiseReduction = 0;
         static Function* Shader_FilterClarity = 0;
-        static Function* Shader_Histogram = 0;
+        static Function* Shader_ScopeHistogram = 0;
+        static Function* Shader_ScopeHistogramParade = 0;
+        static Function* Shader_ScopeWaveform = 0;
+        static Function* Shader_ScopeWaveformParade = 0;
+        static Function* Shader_ScopeComposite = 0;
         static Function* Shader_ICCLinearSRGB = 0;
 
 // NOTE: SUBOPTIMAL: the value here MUST be greater than or equal to
@@ -506,17 +514,75 @@ namespace IPCore
             return Shader_FilterClarity;
         }
 
-        Function* histogram()
+        Function* scopeHistogram()
         {
-            if (!Shader_Histogram)
+            if (!Shader_ScopeHistogram)
             {
                 SymbolVector params, globals;
                 params.push_back(in0());
                 params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
-                Shader_Histogram = new Shader::Function("Histogram", Histogram_glsl, Shader::Function::Filter, params, globals);
+                Shader_ScopeHistogram =
+                    new Shader::Function("ScopeHistogram", ScopeHistogram_glsl, Shader::Function::Filter, params, globals);
             }
 
-            return Shader_Histogram;
+            return Shader_ScopeHistogram;
+        }
+
+        Function* scopeHistogramParade()
+        {
+            if (!Shader_ScopeHistogramParade)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_ScopeHistogramParade =
+                    new Shader::Function("ScopeHistogramParade", ScopeHistogramParade_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_ScopeHistogramParade;
+        }
+
+        Function* scopeWaveform()
+        {
+            if (!Shader_ScopeWaveform)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_ScopeWaveform = new Shader::Function("ScopeWaveform", ScopeWaveform_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_ScopeWaveform;
+        }
+
+        Function* scopeWaveformParade()
+        {
+            if (!Shader_ScopeWaveformParade)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_ScopeWaveformParade =
+                    new Shader::Function("ScopeWaveformParade", ScopeWaveformParade_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_ScopeWaveformParade;
+        }
+
+        Function* scopeComposite()
+        {
+            if (!Shader_ScopeComposite)
+            {
+                SymbolVector params, globals;
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "in0", Symbol::Vec4fType));
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "in1", Symbol::Vec4fType));
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "opacity", Symbol::FloatType));
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "useAlpha", Symbol::FloatType));
+                Shader_ScopeComposite =
+                    new Shader::Function("ScopeComposite", ScopeComposite_glsl, Shader::Function::Color, params, globals);
+            }
+
+            return Shader_ScopeComposite;
         }
 
         Function* filterGaussianVertical()
@@ -2674,9 +2740,9 @@ namespace IPCore
             return new Expression(F, args, image);
         }
 
-        Expression* newHistogram(const IPImage* image, const std::vector<Expression*>& FA1)
+        Expression* newScopeHistogram(const IPImage* image, const std::vector<Expression*>& FA1)
         {
-            const Function* F = histogram();
+            const Function* F = scopeHistogram();
             ArgumentVector args(F->parameters().size());
             int size = FA1.size();
             assert(size == 1);
@@ -2686,6 +2752,71 @@ namespace IPCore
             args[i] = new BoundSpecial(F->parameters()[i]);
             i++;
             args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newScopeHistogramParade(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = scopeHistogramParade();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newScopeWaveform(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = scopeWaveform();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newScopeWaveformParade(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = scopeWaveformParade();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newScopeComposite(const IPImage* image, const std::vector<Expression*>& FA1, float opacity, float useAlpha)
+        {
+            assert(FA1.size() == 2);
+            const Function* F = scopeComposite();
+            ArgumentVector args(F->parameters().size());
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[1]);
+            i++;
+            args[i] = new BoundFloat(F->parameters()[i], opacity);
+            i++;
+            args[i] = new BoundFloat(F->parameters()[i], useAlpha);
             i++;
             return new Expression(F, args, image);
         }

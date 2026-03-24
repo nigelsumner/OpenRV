@@ -8,6 +8,8 @@
 **/moc_*.cpp
 **/ui_*.h
 **/qrc_*.cpp
+**/*_ui.py
+**/*_rc.py
 **/*.qmlc
 **/*.pkg
 **/*.dmg
@@ -42,3 +44,6 @@ maya_tools.mu
 rvnuke_mode.mu
 # see generate_about_rv.py
 about_rv.cpp
+
+# Local investigation notes
+HISTOGRAM_NOTES.md

@@ -32,6 +32,7 @@ SET(_nodes
     FolderGroup
     Linearize
     RetimeGroup
+    ScopeGroup
     SourceStereo
     LensWarp
     Crop

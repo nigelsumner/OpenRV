@@ -883,37 +883,84 @@ global let toggleFlip = toggleIntProp("#RVTransform2D.transform.flip"),
            isSourceSwapEyes = toggleIntPropState("#RVSourceStereo.stereo.swap");
 
 
-\: toggleNormalizeColor (void; Event ev)
+\: toggleScope (EventFunc; int scopeVal, string label)
 {
-    try
+    \: (void; Event ev)
     {
-        int v = if isNormalizingColor() == CheckedMenuState then 0 else 1;
-        setIntProperty("#RVColor.color.normalize", int[] {v}, true);
-        setIntProperty("#RVHistogram.node.active", int[] {v}, true);
-        reload();
-    }
-    catch (exception exc)
-    {
-        let sexc = string(exc);
-        displayFeedback("Unable to toggle normalize color: %s" % sexc);
-    }
+        try
+        {
+            int current = getIntProperty("#RVScope.node.scope").front();
+            if (current == scopeVal)
+            {
+                setIntProperty("#RVScope.node.scope", int[] {0}, true);
+            }
+            else
+            {
+                setIntProperty("#RVScope.node.scope", int[] {scopeVal}, true);
+            }
+            reload();
+        }
+        catch (exception exc)
+        {
+            let sexc = string(exc);
+            displayFeedback("Unable to toggle %s: %s" % (label, sexc));
+        }
+    };
 }
 
-\: isNormalizingColor (int;)
+\: isScopeActive (MenuStateFunc; int scopeVal)
 {
-    try
+    \: (int;)
     {
-        return if (getIntProperty("#RVColor.color.normalize").front() == 1 &&
-                   getIntProperty("#RVHistogram.node.active").front() == 1)
-                then CheckedMenuState
-                else UncheckedMenuState;
-            
-    }
-    catch (...)
+        try
+        {
+            return if (getIntProperty("#RVScope.node.scope").front() == scopeVal)
+                    then CheckedMenuState
+                    else UncheckedMenuState;
+        }
+        catch (...)
+        {
+            ; /* nothing */
+        }
+        return DisabledMenuState;
+    };
+}
+
+\: setScopeOpacity (EventFunc; float val)
+{
+    \: (void; Event ev)
     {
-        ; /* nothing */
-    }
-    return DisabledMenuState;
+        try
+        {
+            setFloatProperty("#RVScope.node.opacity", float[] {val}, true);
+            displayFeedback("Scope Opacity: %d%%" % int(val * 100.0));
+            reload();
+        }
+        catch (exception exc)
+        {
+            let sexc = string(exc);
+            displayFeedback("Unable to set scope opacity: %s" % sexc);
+        }
+    };
+}
+
+\: isScopeOpacity (MenuStateFunc; float val)
+{
+    \: (int;)
+    {
+        try
+        {
+            float current = getFloatProperty("#RVScope.node.opacity").front();
+            return if (current > val - 0.01 && current < val + 0.01)
+                    then CheckedMenuState
+                    else UncheckedMenuState;
+        }
+        catch (...)
+        {
+            ; /* nothing */
+        }
+        return DisabledMenuState;
+    };
 }
 
 \: isOtioEnabled (bool;)
@@ -6537,8 +6584,20 @@ global bool debugGC = false;
             menuItem("Look CDL", "", "source_category", ~toggleLookCDL, isLookCDLActiveState),
             menuSeparator(),
             menuItem("Invert", "key-down--I", "source_category", ~toggleInvert, isInvert),
-            //  RVHistogram node deprecated to remove from GUI for now
-            // MenuItem {"Normalize", toggleNormalizeColor, nil, isNormalizingColor},
+            subMenu("Scopes", MenuItem[] {
+                menuItem("Histogram", "", "source_category", toggleScope(1, "histogram"), isScopeActive(1)),
+                menuItem("Histogram Parade", "", "source_category", toggleScope(2, "histogram parade"), isScopeActive(2)),
+                menuItem("Waveform", "", "source_category", toggleScope(3, "waveform"), isScopeActive(3)),
+                menuItem("Waveform Parade", "", "source_category", toggleScope(4, "waveform parade"), isScopeActive(4)),
+                menuSeparator(),
+                menuText("Opacity"),
+                menuItem("   25%", "", "source_category", setScopeOpacity(0.25), isScopeOpacity(0.25)),
+                menuItem("   50%", "", "source_category", setScopeOpacity(0.50), isScopeOpacity(0.50)),
+                menuItem("   75%", "", "source_category", setScopeOpacity(0.75), isScopeOpacity(0.75)),
+                menuItem("   85%", "", "source_category", setScopeOpacity(0.85), isScopeOpacity(0.85)),
+                menuItem("   95%", "", "source_category", setScopeOpacity(0.95), isScopeOpacity(0.95)),
+                menuItem("   100%", "", "source_category", setScopeOpacity(1.00), isScopeOpacity(1.00))
+            }),
             menuSeparator(),
             menuText("Interactive Edit"),
             menuItem("    Gamma", "key-down--y", "source_category", gammaMode, videoSourcesAndNodeExistState("RVColor")),

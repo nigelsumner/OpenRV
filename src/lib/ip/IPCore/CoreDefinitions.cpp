@@ -27,7 +27,7 @@
 #include <IPCore/TextureOutputGroupIPNode.h>
 #include <IPCore/Transform2DIPNode.h>
 #include <IPCore/RootIPNode.h>
-#include <IPCore/HistogramIPNode.h>
+#include <IPCore/ScopeIPNode.h>
 
 namespace IPCore
 {
@@ -119,8 +119,7 @@ namespace IPCore
         }
 
         {
-            NodeDefinition* def =
-                new NodeDefinition("Histogram", 1, true, "histogram", newIPNode<HistogramIPNode>, "", "", emptyIcon, false);
+            NodeDefinition* def = new NodeDefinition("Scope", 1, true, "scope", newIPNode<ScopeIPNode>, "", "", emptyIcon, false);
 
             m->addDefinition(def);
         }

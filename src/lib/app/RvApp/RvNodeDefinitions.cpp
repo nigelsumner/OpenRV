@@ -24,6 +24,7 @@
 #include <IPBaseNodes/PaintIPNode.h>
 #include <IPBaseNodes/RetimeGroupIPNode.h>
 #include <IPBaseNodes/RetimeIPNode.h>
+#include <IPBaseNodes/ScopeGroupIPNode.h>
 #include <IPBaseNodes/SequenceGroupIPNode.h>
 #include <IPBaseNodes/SequenceIPNode.h>
 #include <IPBaseNodes/SourceGroupIPNode.h>
@@ -54,6 +55,7 @@
 #include <IPCore/SessionIPNode.h>
 #include <IPCore/SoundTrackIPNode.h>
 #include <IPCore/Transform2DIPNode.h>
+#include <IPCore/ScopeIPNode.h>
 #include <ICCNodes/ICCDefinitions.h>
 
 namespace Rv
@@ -171,7 +173,10 @@ namespace Rv
             NodeDefinition* def = new NodeDefinition("RVColorPipelineGroup", 1, true, "pipeline", newIPNode<PipelineGroupIPNode>,
                                                      "Managed Single Input Pipeline for Source Color", "", emptyIcon, false);
 
-            def->declareProperty<StringProperty>("defaults.pipeline", "RVColor");
+            vector<string> colorDefaults;
+            colorDefaults.push_back("RVColor");
+            colorDefaults.push_back("RVScope");
+            def->declareProperty<StringProperty>("defaults.pipeline", colorDefaults);
             m->addDefinition(def);
         }
 
@@ -299,6 +304,25 @@ namespace Rv
         }
 
         m->addDefinition(new NodeDefinition("RVLensWarp", 1, false, "lensWarp", newIPNode<LensWarpIPNode>, "", "", emptyIcon, false));
+
+        m->addDefinition(new NodeDefinition("RVScope", 1, false, "RVScope", newIPNode<ScopeIPNode>, "", "", emptyIcon, false));
+
+        {
+            NodeDefinition* def = new NodeDefinition("RVScopeViewable", 1, false, "scopeViewable", newIPNode<ScopeIPNode>,
+                                                     "Video scopes overlay on input", "", emptyIcon, true);
+
+            def->declareProperty<IntProperty>("defaults.scope", 1);
+            m->addDefinition(def);
+        }
+
+        {
+            NodeDefinition* def = new NodeDefinition("RVScopeGroup", 1, true, "scopeGroup", newIPNode<ScopeGroupIPNode>,
+                                                     "Video scopes overlay on input", "", emptyIcon);
+
+            def->declareProperty<StringProperty>("defaults.scopeType", "RVScope");
+            def->declareProperty<StringProperty>("defaults.paintType", "RVPaint");
+            m->addDefinition(def);
+        }
 
         m->addDefinition(
             new NodeDefinition("RVUnsharpMask", 1, false, "unsharpMask", newIPNode<UnsharpMaskIPNode>, "", "", emptyIcon, true));

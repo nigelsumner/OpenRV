@@ -1,0 +1,82 @@
+//
+// Copyright (C) 2023  Autodesk, Inc. All Rights Reserved. 
+// 
+// SPDX-License-Identifier: Apache-2.0 
+//
+// DaVinci Resolve-style 3-panel parade histogram (R / G / B stacked)
+//
+vec4 ScopeHistogramParade (const in inputImage in0,
+                      const in outputImage win)
+{
+    vec2 winSize  = win.size();
+    vec2 dataSize = in0.size();
+    float normX   = win.st.x / winSize.x;
+    float normY   = win.st.y / winSize.y;
+
+    // Edge fade for alpha — ensures CLAMP_TO_EDGE samples are transparent
+    // when the scope is positioned in a corner.
+    float borderFade = smoothstep(0.0, 3.0 / winSize.x, normX)
+                     * smoothstep(0.0, 3.0 / winSize.x, 1.0 - normX)
+                     * smoothstep(0.0, 3.0 / winSize.y, normY)
+                     * smoothstep(0.0, 3.0 / winSize.y, 1.0 - normY);
+
+    // Sample histogram data: map normalized x to data texel position
+    float texX = in0.st.x;
+    float texY = in0.st.y;
+    float dataX = normX * dataSize.x;
+    vec3 h = in0(vec2(dataX - texX, -texY)).rgb;
+
+    // Black background — alpha 1.0 so the overlay darkens the source
+    vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
+
+    // Vertical grid lines (10 evenly spaced, antialiased, semi-transparent)
+    float gridCount = 10.0;
+    float gridPitch = winSize.x / gridCount;
+    float distToLine = abs(fract(normX * gridCount + 0.5) - 0.5) * gridPitch;
+    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
+
+    // 3 panels in normalized Y: bottom=Blue, middle=Green, top=Red
+    float panelF = normY * 3.0;
+    float panel  = clamp(floor(panelF), 0.0, 2.0);
+    float localY = panelF - panel;
+
+    // Panel separator lines (~1px)
+    float sepW = 1.5 / winSize.y;
+    float atSep1 = step(1.0 / 3.0 - sepW, normY) * step(normY, 1.0 / 3.0 + sepW);
+    float atSep2 = step(2.0 / 3.0 - sepW, normY) * step(normY, 2.0 / 3.0 + sepW);
+    if (atSep1 + atSep2 > 0.0)
+    {
+        vec3 sepCol = vec3(0.15);
+        vec3 lineCol = vec3(0.35, 0.35, 0.20);
+        return vec4(mix(sepCol, lineCol, lineAlpha), borderFade);
+    }
+
+    // Normalize bin values; sqrt compresses range for visibility
+    vec3 nh = sqrt(h) * 2.0;
+
+    // Select channel for this panel
+    float isB = step(panel, 0.5);
+    float isG = step(0.5, panel) * step(panel, 1.5);
+    float isR = step(1.5, panel);
+
+    float val = nh.r * isR + nh.g * isG + nh.b * isB;
+
+    if (localY < val)
+    {
+        // Edge glow near the curve top
+        float edge = smoothstep(val - 0.02, val, localY);
+
+        // Dark semi-transparent fill (blended over black)
+        vec3 fill = vec3(0.14 * isR, 0.07 * isG, 0.11 * isB) * 0.2;
+        // Bright edge / outline colour
+        vec3 bright = vec3(0.42 * isR, 0.27 * isG, 0.35 * isB);
+
+        vec3 col = mix(fill, bright, edge);
+        vec3 lineCol = vec3(0.35, 0.35, 0.20);
+        col = mix(col, lineCol, lineAlpha);
+        return vec4(col, borderFade);
+    }
+
+    vec3 lineCol = vec3(0.35, 0.35, 0.20);
+    return vec4(mix(bg.rgb, lineCol, lineAlpha), borderFade);
+}
