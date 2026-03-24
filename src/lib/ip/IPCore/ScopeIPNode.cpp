@@ -113,7 +113,7 @@ namespace IPCore
             useAlpha = 1.0f;
         }
 
-        IPImage* result = new IPImage(this, IPImage::MergeRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
+        IPImage* mergeResult = new IPImage(this, IPImage::MergeRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
 
         IPImageVector images;
         IPImageSet modifiedImages;
@@ -122,12 +122,25 @@ namespace IPCore
 
         convertBlendRenderTypeToIntermediate(images, modifiedImages);
         Shader::ExpressionVector inExpressions;
-        assembleMergeExpressions(result, images, modifiedImages, false, inExpressions);
+        assembleMergeExpressions(mergeResult, images, modifiedImages, false, inExpressions);
 
-        result->mergeExpr = Shader::newScopeComposite(result, inExpressions, opacity, useAlpha);
+        mergeResult->mergeExpr = Shader::newScopeComposite(mergeResult, inExpressions, opacity, useAlpha);
+        mergeResult->shaderExpr = Shader::newSourceRGBA(mergeResult);
+        mergeResult->appendChildren(images);
+        mergeResult->recordResourceUsage();
+
+        //
+        // Wrap the merge in a BlendRenderType shell. Transform2DIPNode
+        // applies layout transforms to the children of an IntermediateBuffer,
+        // which would break the merge shader's texture coordinate sampling.
+        // Using CurrentFrameBuffer ensures the layout transform is applied to
+        // this shell's root (correct for imageGeometryByIndex / manipulator),
+        // while the inner mergeResult IntermediateBuffer keeps the merge
+        // shader's children isolated.
+        //
+        IPImage* result = new IPImage(this, IPImage::BlendRenderType, outWidth, outHeight, 1.0, IPImage::CurrentFrameBuffer);
+        result->appendChild(mergeResult);
         result->shaderExpr = Shader::newSourceRGBA(result);
-        result->appendChildren(images);
-        result->recordResourceUsage();
 
         return result;
     }
