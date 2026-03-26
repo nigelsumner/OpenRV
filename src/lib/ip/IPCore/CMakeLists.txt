@@ -190,6 +190,7 @@ SET(_shaders
     ScopeHistogramParade
     ScopeWaveform
     ScopeWaveformParade
+    ScopeVectorscope
     ScopeComposite
     ICCLinearSRGB
 )
@@ -200,7 +201,15 @@ LIST(APPEND _sources ${_cooked_shaders})
 
 # Create CL Kernels
 SET(_cl_kernels
-    ScopeHistogram48k ScopeHistogram32k ScopeHistogram16k ScopeWaveform48k ScopeWaveform32k ScopeWaveform16k
+    ScopeHistogram48k
+    ScopeHistogram32k
+    ScopeHistogram16k
+    ScopeWaveform48k
+    ScopeWaveform32k
+    ScopeWaveform16k
+    ScopeVectorscope48k
+    ScopeVectorscope32k
+    ScopeVectorscope16k
 )
 QUOTE_FILES(_cooked_cl_kernels INPUT_LIST ${_cl_kernels} SUFFIX "cl")
 LIST(APPEND _sources ${_cooked_cl_kernels})

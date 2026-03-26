@@ -592,8 +592,10 @@ namespace IPCore
             cl_command_queue commandQueue;
             CLProgram clProgram;
             CLProgram clWaveformProgram;
+            CLProgram clVectorscopeProgram;
             size_t workGroupSize;
             size_t waveformWorkGroupSize;
+            size_t vectorscopeWorkGroupSize;
             size_t version; // OpenCL version
         };
 #endif
@@ -791,6 +793,7 @@ namespace IPCore
         void compileCLPrograms();
         void compileCLHistogram();
         void compileCLWaveform();
+        void compileCLVectorscope();
         void executeCLKernel(const CLContext& context, const cl_kernel& kernel, const size_t globalThreads[3], const size_t localThreads[3],
                              const std::vector<std::pair<size_t, const void*>>& args) const;
 
@@ -947,6 +950,8 @@ namespace IPCore
         void histogramOCL(cl_mem&, cl_mem&, const size_t, const size_t) const;
         void computeWaveform(const ConstFBOVector& childrenFBO, const GLFBO* resultFBO, int mode) const;
         void waveformOCL(cl_mem&, cl_mem&, const size_t, const size_t, const size_t, const size_t, int mode) const;
+        void computeVectorscope(const ConstFBOVector& childrenFBO, const GLFBO* resultFBO) const;
+        void vectorscopeOCL(cl_mem&, cl_mem&, const size_t, const size_t, const size_t) const;
 #endif
 
     private:

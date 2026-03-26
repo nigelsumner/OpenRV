@@ -63,6 +63,8 @@ namespace IPCore
             scopeResult = buildHistogramData(context, image, scope);
         else if (scope == 3 || scope == 4)
             scopeResult = buildWaveformData(context, image, scope);
+        else if (scope == 5)
+            scopeResult = buildVectorscopeData(context, image);
 
         if (!scopeResult)
             return image;
@@ -260,6 +262,56 @@ namespace IPCore
             (scope == 4) ? Shader::newScopeWaveformParade(result, inExpressions) : Shader::newScopeWaveform(result, inExpressions);
         result->shaderExpr = Shader::newSourceRGBA(result);
         result->appendChild(waveData);
+        result->recordResourceUsage();
+
+        return result;
+    }
+
+    //
+    // Build vectorscope data — 256x256 chrominance scatter (Cb x Cr).
+    // Returns a MergeRenderType IPImage with the vectorscope visualization.
+    //
+    IPImage* ScopeIPNode::buildVectorscopeData(const Context& context, IPImage* image)
+    {
+        IPImage* newImage = image;
+        if (!image->shaderExpr && !image->mergeExpr)
+        {
+            assert(image->children && !image->children->next);
+            newImage = image->children;
+            image->children = NULL;
+            delete image;
+            image = NULL;
+        }
+        newImage->shaderExpr = Shader::newColorLinearToSRGB(newImage->shaderExpr);
+
+        // Wrap in an IntermediateBuffer so the OpenCL kernel gets a texture to read from
+        IPImage* image2 = new IPImage(this, IPImage::BlendRenderType, newImage->width, newImage->height, 1.0, IPImage::IntermediateBuffer);
+        image2->shaderExpr = Shader::newSourceRGBA(image2);
+        image2->appendChild(newImage);
+
+        size_t dataSize = 256;
+
+        IPImage* vscopeData =
+            new IPImage(this, IPImage::BlendRenderType, dataSize, dataSize, 1.0, IPImage::DataBuffer, IPImage::FloatDataType);
+        vscopeData->setVectorscope(true);
+        vscopeData->appendChild(image2);
+        vscopeData->shaderExpr = Shader::newSourceRGBA(vscopeData);
+
+        size_t outWidth = newImage->width;
+        size_t outHeight = newImage->height;
+
+        IPImage* result = new IPImage(this, IPImage::MergeRenderType, outWidth, outHeight, 1.0, IPImage::IntermediateBuffer);
+
+        IPImageVector images;
+        IPImageSet modifiedImages;
+        images.push_back(vscopeData);
+        convertBlendRenderTypeToIntermediate(images, modifiedImages);
+        Shader::ExpressionVector inExpressions;
+        assembleMergeExpressions(result, images, modifiedImages, false, inExpressions);
+
+        result->mergeExpr = Shader::newScopeVectorscope(result, inExpressions);
+        result->shaderExpr = Shader::newSourceRGBA(result);
+        result->appendChild(vscopeData);
         result->recordResourceUsage();
 
         return result;

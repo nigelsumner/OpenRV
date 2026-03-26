@@ -615,7 +615,8 @@ class: ScopeViewableEditMode : MinorMode
                      menuItem("   Histogram",          "", "viewmode_category", setScopeTypeEvent(,1), scopeState(1)),
                      menuItem("   Histogram Parade",   "", "viewmode_category", setScopeTypeEvent(,2), scopeState(2)),
                      menuItem("   Waveform",           "", "viewmode_category", setScopeTypeEvent(,3), scopeState(3)),
-                     menuItem("   Waveform Parade",    "", "viewmode_category", setScopeTypeEvent(,4), scopeState(4))
+                     menuItem("   Waveform Parade",    "", "viewmode_category", setScopeTypeEvent(,4), scopeState(4)),
+                     menuItem("   Vectorscope",         "", "viewmode_category", setScopeTypeEvent(,5), scopeState(5))
                  })
              }),
              "zz");

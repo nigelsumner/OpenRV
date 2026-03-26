@@ -268,6 +268,8 @@ namespace IPCore
 
         void setWaveform(bool w) { isWaveform = w; }
 
+        void setVectorscope(bool v) { isVectorscope = v; }
+
         //
         //  IPImage children
         //
@@ -427,6 +429,7 @@ namespace IPCore
         bool useBackground : 1; // draws background for this image
         bool isHistogram : 1;
         bool isWaveform : 1;
+        bool isVectorscope : 1;
         int waveformMode;
 
         size_t hashCount;

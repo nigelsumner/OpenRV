@@ -68,6 +68,7 @@ namespace IPCore
         hashCount = 0;
         isHistogram = false;
         isWaveform = false;
+        isVectorscope = false;
         waveformMode = 0;
         isCropped = false;
         cropStartX = 0;

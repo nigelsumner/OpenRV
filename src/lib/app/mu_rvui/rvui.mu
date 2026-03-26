@@ -6589,6 +6589,7 @@ global bool debugGC = false;
                 menuItem("Histogram Parade", "", "source_category", toggleScope(2, "histogram parade"), isScopeActive(2)),
                 menuItem("Waveform", "", "source_category", toggleScope(3, "waveform"), isScopeActive(3)),
                 menuItem("Waveform Parade", "", "source_category", toggleScope(4, "waveform parade"), isScopeActive(4)),
+                menuItem("Vectorscope", "", "source_category", toggleScope(5, "vectorscope"), isScopeActive(5)),
                 menuSeparator(),
                 menuText("Opacity"),
                 menuItem("   25%", "", "source_category", setScopeOpacity(0.25), isScopeOpacity(0.25)),

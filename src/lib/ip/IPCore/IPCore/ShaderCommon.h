@@ -183,6 +183,8 @@ namespace IPCore
 
         Expression* newScopeWaveformParade(const IPImage*, const std::vector<Expression*>&);
 
+        Expression* newScopeVectorscope(const IPImage*, const std::vector<Expression*>&);
+
         Expression* newScopeComposite(const IPImage*, const std::vector<Expression*>&, float opacity, float useAlpha);
 
         Expression* newLensWarp(const IPImage*, Expression*, float k1, float k2, float k3, float d, float p1, float p2,

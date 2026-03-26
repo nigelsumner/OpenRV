@@ -15,7 +15,7 @@ namespace IPCore
 
     //
     //  Unified video scopes node — histogram, histogram parade,
-    //  waveform, waveform parade, and future scope types.
+    //  waveform, waveform parade, vectorscope, and future scope types.
     //
     //  node.scope values:
     //    0 = off
@@ -23,6 +23,7 @@ namespace IPCore
     //    2 = histogram parade (R/G/B stacked)
     //    3 = waveform (chromatic composite)
     //    4 = waveform parade (R/G/B side-by-side)
+    //    5 = vectorscope (Cb vs Cr chrominance scatter)
     //
 
     class ScopeIPNode : public IPNode
@@ -37,6 +38,7 @@ namespace IPCore
     private:
         IPImage* buildHistogramData(const Context&, IPImage* image, int scope);
         IPImage* buildWaveformData(const Context&, IPImage* image, int scope);
+        IPImage* buildVectorscopeData(const Context&, IPImage* image);
 
         IntProperty* m_scope;
         IntProperty* m_position;

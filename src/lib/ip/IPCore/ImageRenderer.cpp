@@ -102,6 +102,10 @@ extern const char* ScopeWaveform48k_cl;
 extern const char* ScopeWaveform32k_cl;
 extern const char* ScopeWaveform16k_cl;
 
+extern const char* ScopeVectorscope48k_cl;
+extern const char* ScopeVectorscope32k_cl;
+extern const char* ScopeVectorscope16k_cl;
+
 namespace IPCore
 {
     using namespace std;
@@ -1072,6 +1076,7 @@ namespace IPCore
                 createCLContexts();
                 compileCLHistogram();
                 compileCLWaveform();
+                compileCLVectorscope();
             }
         }
         catch (...)
@@ -1354,6 +1359,151 @@ namespace IPCore
 
         clReleaseMemObject(clImage);
         clReleaseMemObject(waveOut);
+    }
+
+#define VSCOPE_BIN 256
+
+    void ImageRenderer::compileCLVectorscope()
+    {
+        cl_int ret;
+        cl_ulong localMemSize;
+        ret = clGetDeviceInfo(m_clContext.deviceID, CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &localMemSize, NULL);
+
+        const char* vscopeSrc = NULL;
+        if (localMemSize <= 16 * 1024)
+            vscopeSrc = ScopeVectorscope16k_cl;
+        else if (localMemSize <= 32 * 1024)
+            vscopeSrc = ScopeVectorscope32k_cl;
+        else
+            vscopeSrc = ScopeVectorscope48k_cl;
+
+        m_clContext.clVectorscopeProgram.program =
+            clCreateProgramWithSource(m_clContext.clContext, 1, (const char**)&vscopeSrc, NULL, &ret);
+        printCLError(ret);
+
+        ret = clBuildProgram(m_clContext.clVectorscopeProgram.program, 1, &m_clContext.deviceID, NULL, NULL, NULL);
+        printCLError(ret);
+
+#ifdef NDEBUG
+#else
+        size_t len;
+        clGetProgramBuildInfo(m_clContext.clVectorscopeProgram.program, m_clContext.deviceID, CL_PROGRAM_BUILD_LOG, 0, NULL, &len);
+        vector<char> buffer(len);
+        clGetProgramBuildInfo(m_clContext.clVectorscopeProgram.program, m_clContext.deviceID, CL_PROGRAM_BUILD_LOG, len, &buffer[0], NULL);
+#endif
+
+        m_clContext.clVectorscopeProgram.kernels.push_back(
+            clCreateKernel(m_clContext.clVectorscopeProgram.program, "vectorscope256_float4", &ret));
+        printCLError(ret);
+
+        m_clContext.clVectorscopeProgram.kernels.push_back(
+            clCreateKernel(m_clContext.clVectorscopeProgram.program, "mergeVectorscope256_float4", &ret));
+        printCLError(ret);
+
+        size_t workGroupSize;
+        clGetKernelWorkGroupInfo(m_clContext.clVectorscopeProgram.kernels[0], m_clContext.deviceID, CL_KERNEL_WORK_GROUP_SIZE,
+                                 sizeof(size_t), &workGroupSize, NULL);
+        m_clContext.vectorscopeWorkGroupSize = workGroupSize;
+    }
+
+    void ImageRenderer::vectorscopeOCL(cl_mem& image, cl_mem& vscopeOut, const size_t w, const size_t h, const size_t outSize) const
+    {
+        cl_int err;
+
+        // Intermediate buffer: VSCOPE_BIN x VSCOPE_BIN x 4 channels as uint
+        size_t bufSize = 4 * VSCOPE_BIN * VSCOPE_BIN * sizeof(cl_uint);
+        cl_mem subVscope = clCreateBuffer(m_clContext.clContext, CL_MEM_READ_WRITE, bufSize, NULL, &err);
+        printCLError(err);
+
+        // Clear intermediate buffer
+        cl_uint zero = 0;
+        err = clEnqueueFillBuffer(m_clContext.commandQueue, subVscope, &zero, sizeof(cl_uint), 0, bufSize, 0, NULL, NULL);
+        printCLError(err);
+        clFinish(m_clContext.commandQueue);
+
+        // Scatter pass: one thread per pixel
+        // Use 16x16 workgroups
+        size_t localW = 16;
+        size_t localH = 16;
+        size_t globalW = ((w + localW - 1) / localW) * localW;
+        size_t globalH = ((h + localH - 1) / localH) * localH;
+        size_t globalThreads[3] = {globalW, globalH, 1};
+        size_t localThreads[3] = {localW, localH, 1};
+
+        cl_uint clW = (cl_uint)w;
+        cl_uint clH = (cl_uint)h;
+
+        vector<pair<size_t, const void*>> args;
+        args.push_back(make_pair(sizeof(image), (void*)&image));
+        args.push_back(make_pair(sizeof(subVscope), (void*)&subVscope));
+        args.push_back(make_pair(sizeof(cl_uint), (void*)&clW));
+        args.push_back(make_pair(sizeof(cl_uint), (void*)&clH));
+
+        executeCLKernel(m_clContext, m_clContext.clVectorscopeProgram.kernels[0], globalThreads, localThreads, args);
+
+        // Ensure scatter kernel completes before merge reads the buffer
+        clFinish(m_clContext.commandQueue);
+
+        // Merge pass: globalSize = (VSCOPE_BIN, VSCOPE_BIN)
+        size_t mergeGlobal[3] = {VSCOPE_BIN, VSCOPE_BIN, 1};
+        size_t mergeLocal[3] = {16, 16, 1};
+
+        cl_uint binSize = (cl_uint)VSCOPE_BIN;
+        float imgSizef = (float)(w * h);
+
+        vector<pair<size_t, const void*>> args2;
+        args2.push_back(make_pair(sizeof(cl_mem), (void*)&subVscope));
+        args2.push_back(make_pair(sizeof(cl_mem), (void*)&vscopeOut));
+        args2.push_back(make_pair(sizeof(cl_uint), (void*)&binSize));
+        args2.push_back(make_pair(sizeof(cl_float), (void*)&imgSizef));
+
+        executeCLKernel(m_clContext, m_clContext.clVectorscopeProgram.kernels[1], mergeGlobal, mergeLocal, args2);
+
+        clReleaseMemObject(subVscope);
+    }
+
+    void ImageRenderer::computeVectorscope(const ConstFBOVector& childrenFBO, const GLFBO* resultFBO) const
+    {
+        assert(childrenFBO.size() == 1);
+        const GLFBO* fbo = childrenFBO[0];
+
+        // Ensure all pending GL rendering is complete before CL acquires the textures
+        glFinish();
+
+        assert(fbo->hasColorAttachment());
+        cl_int err;
+#ifdef CL_VERSION_1_2
+        cl_mem clImage = clCreateFromGLTexture(m_clContext.clContext, CL_MEM_READ_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, fbo->colorID(0), &err);
+#else
+        cl_mem clImage =
+            clCreateFromGLTexture2D(m_clContext.clContext, CL_MEM_READ_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, fbo->colorID(0), &err);
+#endif
+        printCLError(err);
+        err = clEnqueueAcquireGLObjects(m_clContext.commandQueue, 1, &clImage, 0, 0, 0);
+        printCLError(err);
+
+        assert(resultFBO->hasColorAttachment());
+#ifdef CL_VERSION_1_2
+        cl_mem vscopeOut =
+            clCreateFromGLTexture(m_clContext.clContext, CL_MEM_WRITE_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, resultFBO->colorID(0), &err);
+#else
+        cl_mem vscopeOut =
+            clCreateFromGLTexture2D(m_clContext.clContext, CL_MEM_WRITE_ONLY, GL_TEXTURE_RECTANGLE_ARB, 0, resultFBO->colorID(0), &err);
+#endif
+        printCLError(err);
+        err = clEnqueueAcquireGLObjects(m_clContext.commandQueue, 1, &vscopeOut, 0, 0, 0);
+        printCLError(err);
+
+        vectorscopeOCL(clImage, vscopeOut, fbo->width(), fbo->height(), resultFBO->width());
+
+        err = clEnqueueReleaseGLObjects(m_clContext.commandQueue, 1, &clImage, 0, 0, 0);
+        printCLError(err);
+        err = clEnqueueReleaseGLObjects(m_clContext.commandQueue, 1, &vscopeOut, 0, 0, 0);
+        printCLError(err);
+        clFinish(m_clContext.commandQueue);
+
+        clReleaseMemObject(clImage);
+        clReleaseMemObject(vscopeOut);
     }
 #endif
 
@@ -2471,6 +2621,17 @@ namespace IPCore
                     childrenFBO.push_back(ifbo->fbo());
                 }
                 computeWaveform(childrenFBO, fbo, root->waveformMode);
+            }
+            if (!baseContext.norender && root->isVectorscope)
+            {
+                ConstFBOVector childrenFBO;
+                for (IPImage* child = root->children; child; child = child->next)
+                {
+                    ImageFBO* ifbo = findExistingImageFBO(child);
+                    assert(ifbo);
+                    childrenFBO.push_back(ifbo->fbo());
+                }
+                computeVectorscope(childrenFBO, fbo);
             }
         }
         catch (...)

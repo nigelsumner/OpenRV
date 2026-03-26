@@ -165,6 +165,7 @@ extern const char* ScopeHistogram_glsl;
 extern const char* ScopeHistogramParade_glsl;
 extern const char* ScopeWaveform_glsl;
 extern const char* ScopeWaveformParade_glsl;
+extern const char* ScopeVectorscope_glsl;
 extern const char* ScopeComposite_glsl;
 extern const char* ICCLinearSRGB_glsl;
 
@@ -360,6 +361,7 @@ namespace IPCore
         static Function* Shader_ScopeHistogramParade = 0;
         static Function* Shader_ScopeWaveform = 0;
         static Function* Shader_ScopeWaveformParade = 0;
+        static Function* Shader_ScopeVectorscope = 0;
         static Function* Shader_ScopeComposite = 0;
         static Function* Shader_ICCLinearSRGB = 0;
 
@@ -567,6 +569,20 @@ namespace IPCore
             }
 
             return Shader_ScopeWaveformParade;
+        }
+
+        Function* scopeVectorscope()
+        {
+            if (!Shader_ScopeVectorscope)
+            {
+                SymbolVector params, globals;
+                params.push_back(in0());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "win", Symbol::OutputImageType));
+                Shader_ScopeVectorscope =
+                    new Shader::Function("ScopeVectorscope", ScopeVectorscope_glsl, Shader::Function::Filter, params, globals);
+            }
+
+            return Shader_ScopeVectorscope;
         }
 
         Function* scopeComposite()
@@ -2791,6 +2807,22 @@ namespace IPCore
         Expression* newScopeWaveformParade(const IPImage* image, const std::vector<Expression*>& FA1)
         {
             const Function* F = scopeWaveformParade();
+            ArgumentVector args(F->parameters().size());
+            int size = FA1.size();
+            assert(size == 1);
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA1[0]);
+            i++;
+            args[i] = new BoundSpecial(F->parameters()[i]);
+            i++;
+            args[i] = new BoundVec2f(F->parameters()[i], Vec2f(0.0f));
+            i++;
+            return new Expression(F, args, image);
+        }
+
+        Expression* newScopeVectorscope(const IPImage* image, const std::vector<Expression*>& FA1)
+        {
+            const Function* F = scopeVectorscope();
             ArgumentVector args(F->parameters().size());
             int size = FA1.size();
             assert(size == 1);
