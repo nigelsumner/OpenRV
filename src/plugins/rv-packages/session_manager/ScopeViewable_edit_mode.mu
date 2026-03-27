@@ -60,7 +60,44 @@ class: ScopeViewableEditMode : MinorMode
 
     method: setPosition (void; int index)
     {
+        int oldPos = getIntProperty("#RVScopeViewable.node.position").front();
         set("#RVScopeViewable.node.position", index);
+
+        if ((index == 3 || index == 4) && (oldPos == 0 || oldPos == 1 || oldPos == 2))
+        {
+            float s  = 1.0;
+            float tx = 0.0;
+            float ty = 0.0;
+
+            if (oldPos == 1 || oldPos == 2)
+            {
+                float aspect = 1.0;
+                int idx = scopeImageIndex();
+                if (idx != -1)
+                {
+                    let corners = imageGeometryByIndex(idx);
+                    if (corners.size() >= 4)
+                    {
+                        float ba = mag(corners[1] - corners[0]);
+                        float da = mag(corners[3] - corners[0]);
+                        if (ba > 1.0 && da > 1.0) aspect = ba / da;
+                    }
+                }
+
+                s  = 0.33;
+                ty = (s - 1.0) / 2.0;
+
+                if (oldPos == 1)
+                    tx = aspect * (s - 1.0) / 2.0;
+                else
+                    tx = aspect * (1.0 - s) / 2.0;
+            }
+
+            set("#RVScopeViewable.node.manualScale", s);
+            set("#RVScopeViewable.node.manualTranslateX", tx);
+            set("#RVScopeViewable.node.manualTranslateY", ty);
+        }
+
         redraw();
     }
 
