@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>272</width>
-    <height>140</height>
+    <height>312</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>GroupBox</string>
@@ -18,6 +24,60 @@
   </property>
   <layout class="QFormLayout" name="formLayout">
    <item row="0" column="0">
+    <widget class="QLabel" name="signalTypeLabel">
+     <property name="text">
+      <string>Signal</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="signalTypeCombo">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>22</height>
+      </size>
+     </property>
+     <property name="toolTip">
+      <string>Signal interpretation for scale and labels</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>Auto (detect)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Linear sRGB</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Scene Linear</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>PQ (ST.2084)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>HLG (BT.2100)</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="1" column="0">
     <widget class="QLabel" name="scopeTypeLabel">
      <property name="text">
       <string>Scope Type</string>
@@ -27,7 +87,7 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="1">
+   <item row="1" column="1">
     <widget class="QComboBox" name="scopeTypeCombo">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
@@ -72,55 +132,6 @@
       </property>
      </item>
     </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="opacityLabel">
-     <property name="text">
-      <string>Opacity</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <layout class="QHBoxLayout" name="opacityLayout">
-     <item>
-      <widget class="QSlider" name="opacitySlider">
-       <property name="toolTip">
-        <string>Scope overlay opacity (0-100%)</string>
-       </property>
-       <property name="minimum">
-        <number>0</number>
-       </property>
-       <property name="maximum">
-        <number>100</number>
-       </property>
-       <property name="value">
-        <number>75</number>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="opacityLineEdit">
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>Opacity (0.0 to 1.0)</string>
-       </property>
-       <property name="text">
-        <string>0.75</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
    </item>
    <item row="2" column="0">
     <widget class="QLabel" name="positionLabel">
@@ -176,18 +187,173 @@
      </item>
     </widget>
    </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="opacityLabel">
+     <property name="text">
+      <string>Opacity</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="1">
-    <spacer name="verticalSpacer">
+    <layout class="QHBoxLayout" name="opacityLayout">
+     <item>
+      <widget class="QSlider" name="opacitySlider">
+       <property name="toolTip">
+        <string>Scope overlay opacity (0-100%)</string>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="value">
+        <number>75</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="opacityLineEdit">
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Opacity (0.0 to 1.0)</string>
+       </property>
+       <property name="text">
+        <string>0.75</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="1">
+    <spacer name="sectionSpacer">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
      </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::Fixed</enum>
+     </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>20</width>
-       <height>10</height>
+       <width>0</width>
+       <height>8</height>
       </size>
      </property>
     </spacer>
+   </item>
+   <item row="5" column="0">
+    <widget class="QLabel" name="refLinesLabel">
+     <property name="text">
+      <string>Ref Lines</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTop|Qt::AlignmentFlag::AlignTrailing</set>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <layout class="QVBoxLayout" name="refLinesLayout">
+     <property name="spacing">
+      <number>4</number>
+     </property>
+     <item>
+      <layout class="QHBoxLayout" name="refLine1Layout">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <item>
+        <widget class="QLineEdit" name="refLine1ValueEdit">
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Value in display units (e.g. 0.5 for sRGB, 100 for PQ nits)</string>
+         </property>
+         <property name="placeholderText">
+          <string>Value</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="refLine1LabelEdit">
+         <property name="toolTip">
+          <string>Optional label for this reference line</string>
+         </property>
+         <property name="placeholderText">
+          <string>Label</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="refLine1ClearBtn">
+         <property name="toolTip">
+          <string>Clear this reference line</string>
+         </property>
+         <property name="text">
+          <string>x</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="refLine2Layout">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <item>
+        <widget class="QLineEdit" name="refLine2ValueEdit">
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="toolTip">
+          <string>Value in display units (e.g. 0.5 for sRGB, 100 for PQ nits)</string>
+         </property>
+         <property name="placeholderText">
+          <string>Value</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="refLine2LabelEdit">
+         <property name="toolTip">
+          <string>Optional label for this reference line</string>
+         </property>
+         <property name="placeholderText">
+          <string>Label</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="refLine2ClearBtn">
+         <property name="toolTip">
+          <string>Clear this reference line</string>
+         </property>
+         <property name="text">
+          <string>x</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

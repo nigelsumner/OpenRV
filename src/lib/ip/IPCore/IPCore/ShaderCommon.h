@@ -115,6 +115,7 @@ namespace IPCore
         Expression* newColorViperLogToLinear(Expression*);
         Expression* newColorRedLogToLinear(Expression*);
         Expression* newColorLinearToRedLog(Expression*);
+        Expression* newColorSceneLinearToNorm(Expression*, float logMin, float logMax);
         Expression* newColorPremult(Expression*);
         Expression* newColorPremultLight(Expression*);
         Expression* newColorUnpremult(Expression*);

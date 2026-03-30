@@ -15,13 +15,6 @@ vec4 ScopeWaveform (const in inputImage in0,
     float normX   = win.st.x / winSize.x;
     float normY   = win.st.y / winSize.y;
 
-    // Edge fade for alpha — ensures CLAMP_TO_EDGE samples are transparent
-    // when the scope is positioned in a corner.
-    float borderFade = smoothstep(0.0, 3.0 / winSize.x, normX)
-                     * smoothstep(0.0, 3.0 / winSize.x, 1.0 - normX)
-                     * smoothstep(0.0, 3.0 / winSize.y, normY)
-                     * smoothstep(0.0, 3.0 / winSize.y, 1.0 - normY);
-
     // Map normalised output coords to data texture coords.
     float targetX = normX * dataSize.x;
     float targetY = normY * dataSize.y;
@@ -32,13 +25,6 @@ vec4 ScopeWaveform (const in inputImage in0,
     // Black background
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
-    // Horizontal grid lines (10 evenly spaced, antialiased, semi-transparent amber)
-    float gridCount = 10.0;
-    float gridPitch = winSize.y / gridCount;
-    float distToLine = abs(fract(normY * gridCount + 0.5) - 0.5) * gridPitch;
-    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
-    vec3 lineCol = vec3(0.35, 0.35, 0.20);
-
     // Tone-map the accumulated colour
     float gain = 8.0;
     vec3 mapped = vec3(1.0) - exp(-gain * acc.rgb);
@@ -46,14 +32,11 @@ vec4 ScopeWaveform (const in inputImage in0,
     // Threshold: skip very dim bins for a cleaner look
     float lum = dot(mapped, vec3(0.2126, 0.7152, 0.0722));
     if (lum < 0.01)
-        return vec4(mix(bg.rgb, lineCol, lineAlpha), borderFade);
+        return vec4(bg.rgb, 1.0);
 
     // Chromatic colouring with slight saturation boost
     vec3 col = mapped * 1.2;
     col = clamp(col, 0.0, 1.0);
 
-    // Blend grid lines
-    col = mix(col, lineCol, lineAlpha);
-
-    return vec4(col, borderFade);
+    return vec4(col, 1.0);
 }

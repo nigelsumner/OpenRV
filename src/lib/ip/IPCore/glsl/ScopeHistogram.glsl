@@ -13,13 +13,6 @@ vec4 ScopeHistogram (const in inputImage in0,
     float normX   = win.st.x / winSize.x;
     float normY   = win.st.y / winSize.y;
 
-    // Edge fade for alpha — ensures CLAMP_TO_EDGE samples are transparent
-    // when the scope is positioned in a corner.
-    float borderFade = smoothstep(0.0, 3.0 / winSize.x, normX)
-                     * smoothstep(0.0, 3.0 / winSize.x, 1.0 - normX)
-                     * smoothstep(0.0, 3.0 / winSize.y, normY)
-                     * smoothstep(0.0, 3.0 / winSize.y, 1.0 - normY);
-
     // Sample histogram data: map normalized x to data texel position
     float texX = in0.st.x;
     float texY = in0.st.y;
@@ -29,13 +22,6 @@ vec4 ScopeHistogram (const in inputImage in0,
     // Black background
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
-    // Vertical grid lines (10 evenly spaced, antialiased, semi-transparent)
-    float gridCount = 10.0;
-    float gridPitch = winSize.x / gridCount;
-    float distToLine = abs(fract(normX * gridCount + 0.5) - 0.5) * gridPitch;
-    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
-    vec3 lineCol = vec3(0.35, 0.35, 0.20);
-
     // Normalize bin values; sqrt compresses range for visibility
     vec3 nh = sqrt(h) * 2.0;
 
@@ -44,9 +30,9 @@ vec4 ScopeHistogram (const in inputImage in0,
     float gFill = step(normY, nh.g);
     float bFill = step(normY, nh.b);
 
-    // If no channel reaches this height, draw background + grid
+    // If no channel reaches this height, draw background
     if (rFill + gFill + bFill < 0.5)
-        return vec4(mix(bg.rgb, lineCol, lineAlpha), borderFade);
+        return vec4(bg.rgb, 1.0);
 
     // Edge glow near the curve tops
     float rEdge = smoothstep(nh.r - 0.02, nh.r, normY) * rFill;
@@ -63,8 +49,5 @@ vec4 ScopeHistogram (const in inputImage in0,
     // (yellow where R+G overlap, cyan where G+B, magenta where R+B, white where all 3)
     col = clamp(col, 0.0, 1.0);
 
-    // Blend grid lines
-    col = mix(col, lineCol, lineAlpha);
-
-    return vec4(col, borderFade);
+    return vec4(col, 1.0);
 }

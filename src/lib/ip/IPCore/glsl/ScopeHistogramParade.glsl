@@ -13,13 +13,6 @@ vec4 ScopeHistogramParade (const in inputImage in0,
     float normX   = win.st.x / winSize.x;
     float normY   = win.st.y / winSize.y;
 
-    // Edge fade for alpha — ensures CLAMP_TO_EDGE samples are transparent
-    // when the scope is positioned in a corner.
-    float borderFade = smoothstep(0.0, 3.0 / winSize.x, normX)
-                     * smoothstep(0.0, 3.0 / winSize.x, 1.0 - normX)
-                     * smoothstep(0.0, 3.0 / winSize.y, normY)
-                     * smoothstep(0.0, 3.0 / winSize.y, 1.0 - normY);
-
     // Sample histogram data: map normalized x to data texel position
     float texX = in0.st.x;
     float texY = in0.st.y;
@@ -29,11 +22,7 @@ vec4 ScopeHistogramParade (const in inputImage in0,
     // Black background — alpha 1.0 so the overlay darkens the source
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
-    // Vertical grid lines (10 evenly spaced, antialiased, semi-transparent)
-    float gridCount = 10.0;
-    float gridPitch = winSize.x / gridCount;
-    float distToLine = abs(fract(normX * gridCount + 0.5) - 0.5) * gridPitch;
-    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
+
 
     // 3 panels in normalized Y: bottom=Blue, middle=Green, top=Red
     float panelF = normY * 3.0;
@@ -46,9 +35,7 @@ vec4 ScopeHistogramParade (const in inputImage in0,
     float atSep2 = step(2.0 / 3.0 - sepW, normY) * step(normY, 2.0 / 3.0 + sepW);
     if (atSep1 + atSep2 > 0.0)
     {
-        vec3 sepCol = vec3(0.15);
-        vec3 lineCol = vec3(0.35, 0.35, 0.20);
-        return vec4(mix(sepCol, lineCol, lineAlpha), borderFade);
+        return vec4(vec3(0.15), 1.0);
     }
 
     // Normalize bin values; sqrt compresses range for visibility
@@ -72,11 +59,8 @@ vec4 ScopeHistogramParade (const in inputImage in0,
         vec3 bright = vec3(0.42 * isR, 0.27 * isG, 0.35 * isB);
 
         vec3 col = mix(fill, bright, edge);
-        vec3 lineCol = vec3(0.35, 0.35, 0.20);
-        col = mix(col, lineCol, lineAlpha);
-        return vec4(col, borderFade);
+        return vec4(col, 1.0);
     }
 
-    vec3 lineCol = vec3(0.35, 0.35, 0.20);
-    return vec4(mix(bg.rgb, lineCol, lineAlpha), borderFade);
+    return vec4(bg.rgb, 1.0);
 }

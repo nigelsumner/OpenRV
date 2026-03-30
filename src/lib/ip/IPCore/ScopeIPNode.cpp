@@ -31,6 +31,8 @@ namespace IPCore
         int defaultScope = def->intValue("defaults.scope", 0);
         m_scope = declareProperty<IntProperty>("node.scope", defaultScope);
         m_position = declareProperty<IntProperty>("node.position", 0);
+        m_signalType = declareProperty<IntProperty>("node.signalType", 0);
+        m_signalAutoDetect = declareProperty<IntProperty>("node.signalAutoDetect", 1);
         m_opacity = declareProperty<FloatProperty>("node.opacity", 0.95f);
         m_manualScale = declareProperty<FloatProperty>("node.manualScale", 0.33f);
         m_manualTranslateX = declareProperty<FloatProperty>("node.manualTranslateX", 0.0f);
@@ -148,6 +150,45 @@ namespace IPCore
     }
 
     //
+    // Apply the appropriate normalization shader before OpenCL kernel binning.
+    // The kernels expect [0,1] input. The normalization depends on signal type:
+    //   0 = Linear sRGB:   LinearToSRGB (existing behaviour)
+    //   1 = Scene Linear:  log2 normalization mapping a configurable stop range
+    //                       to [0,1]. Default: -5 to +6 stops from 18% grey.
+    //   2 = PQ:            LinearToSMPTE2084 (PQ OETF, maps linear nits → [0,1])
+    //   3 = HLG:           LinearToHLG (HLG OETF, maps linear nits → [0,1])
+    //
+    void ScopeIPNode::applyScopeNormalization(IPImage* img)
+    {
+        int sigType = m_signalType ? m_signalType->front() : 0;
+
+        if (sigType == 1)
+        {
+            // Scene-linear: map stops -5 to +6 relative to 18% grey → [0,1]
+            //   lowVal  = 0.18 * 2^(-5) = 0.005625  → log2 ≈ -7.47
+            //   highVal = 0.18 * 2^(+6) = 11.52     → log2 ≈  3.53
+            const float logMin = log2f(0.18f * powf(2.0f, -5.0f)); // ≈ -7.47
+            const float logMax = log2f(0.18f * powf(2.0f, 6.0f));  // ≈  3.53
+
+            img->shaderExpr = Shader::newColorSceneLinearToNorm(img->shaderExpr, logMin, logMax);
+        }
+        else if (sigType == 2)
+        {
+            // PQ: apply OETF to map linear (1.0 = 100 nits) → PQ code values [0,1]
+            img->shaderExpr = Shader::newColorLinearToSMPTE2084(img->shaderExpr);
+        }
+        else if (sigType == 3)
+        {
+            // HLG: apply OETF to map linear (1.0 = 100 nits) → HLG signal [0,1]
+            img->shaderExpr = Shader::newColorLinearToHLG(img->shaderExpr);
+        }
+        else
+        {
+            img->shaderExpr = Shader::newColorLinearToSRGB(img->shaderExpr);
+        }
+    }
+
+    //
     // Build pure histogram scope image (no background compositing).
     // Returns a MergeRenderType IPImage with the histogram visualization.
     //
@@ -162,7 +203,7 @@ namespace IPCore
             delete image;
             image = NULL;
         }
-        newImage->shaderExpr = Shader::newColorLinearToSRGB(newImage->shaderExpr);
+        applyScopeNormalization(newImage);
 
         IPImage* image2 = NULL;
         size_t scale = max(newImage->width / 300, newImage->height / 300);
@@ -230,7 +271,7 @@ namespace IPCore
             delete image;
             image = NULL;
         }
-        newImage->shaderExpr = Shader::newColorLinearToSRGB(newImage->shaderExpr);
+        applyScopeNormalization(newImage);
 
         IPImage* image2 = new IPImage(this, IPImage::BlendRenderType, newImage->width, newImage->height, 1.0, IPImage::IntermediateBuffer);
         image2->shaderExpr = Shader::newSourceRGBA(image2);
@@ -282,7 +323,7 @@ namespace IPCore
             delete image;
             image = NULL;
         }
-        newImage->shaderExpr = Shader::newColorLinearToSRGB(newImage->shaderExpr);
+        applyScopeNormalization(newImage);
 
         // Wrap in an IntermediateBuffer so the OpenCL kernel gets a texture to read from
         IPImage* image2 = new IPImage(this, IPImage::BlendRenderType, newImage->width, newImage->height, 1.0, IPImage::IntermediateBuffer);

@@ -15,22 +15,10 @@ vec4 ScopeWaveformParade (const in inputImage in0,
     float normX   = win.st.x / winSize.x;
     float normY   = win.st.y / winSize.y;
 
-    // Edge fade for alpha — ensures CLAMP_TO_EDGE samples are transparent
-    // when the scope is positioned in a corner.
-    float borderFade = smoothstep(0.0, 3.0 / winSize.x, normX)
-                     * smoothstep(0.0, 3.0 / winSize.x, 1.0 - normX)
-                     * smoothstep(0.0, 3.0 / winSize.y, normY)
-                     * smoothstep(0.0, 3.0 / winSize.y, 1.0 - normY);
-
     // Black background
     vec4 bg = vec4(0.0, 0.0, 0.0, 1.0);
 
-    // Horizontal grid lines (10 evenly spaced, antialiased, semi-transparent amber)
-    float gridCount = 10.0;
-    float gridPitch = winSize.y / gridCount;
-    float distToLine = abs(fract(normY * gridCount + 0.5) - 0.5) * gridPitch;
-    float lineAlpha = (1.0 - smoothstep(0.0, 1.0, distToLine)) * 0.25;
-    vec3 lineCol = vec3(0.35, 0.35, 0.20);
+
 
     // 3 panels side by side: left=Red, centre=Green, right=Blue
     float panelF  = normX * 3.0;
@@ -43,8 +31,7 @@ vec4 ScopeWaveformParade (const in inputImage in0,
     float atSep2 = step(2.0 / 3.0 - sepW, normX) * step(normX, 2.0 / 3.0 + sepW);
     if (atSep1 + atSep2 > 0.0)
     {
-        vec3 sepCol = vec3(0.15);
-        return vec4(mix(sepCol, lineCol, lineAlpha), borderFade);
+        return vec4(vec3(0.15), 1.0);
     }
 
     // Map local panel X to data texture column
@@ -68,7 +55,7 @@ vec4 ScopeWaveformParade (const in inputImage in0,
 
     // Threshold: skip very dim bins for a cleaner look
     if (val < 0.01)
-        return vec4(mix(bg.rgb, lineCol, lineAlpha), borderFade);
+        return vec4(bg.rgb, 1.0);
 
     // Channel colour that transitions to white at peak density (Resolve-style)
     vec3 channelCol = vec3(isR, isG, isB);
@@ -76,8 +63,5 @@ vec4 ScopeWaveformParade (const in inputImage in0,
     vec3 col = val * channelCol + white * (vec3(1.0) - channelCol);
     col = clamp(col, 0.0, 1.0);
 
-    // Blend grid lines
-    col = mix(col, lineCol, lineAlpha);
-
-    return vec4(col, borderFade);
+    return vec4(col, 1.0);
 }

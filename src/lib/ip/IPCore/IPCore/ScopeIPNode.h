@@ -40,8 +40,12 @@ namespace IPCore
         IPImage* buildWaveformData(const Context&, IPImage* image, int scope);
         IPImage* buildVectorscopeData(const Context&, IPImage* image);
 
+        void applyScopeNormalization(IPImage* img);
+
         IntProperty* m_scope;
         IntProperty* m_position;
+        IntProperty* m_signalType;
+        IntProperty* m_signalAutoDetect;
         FloatProperty* m_opacity;
         FloatProperty* m_manualScale;
         FloatProperty* m_manualTranslateX;

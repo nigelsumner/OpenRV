@@ -192,6 +192,7 @@ SET(_shaders
     ScopeWaveformParade
     ScopeVectorscope
     ScopeComposite
+    ColorSceneLinearToNorm
     ICCLinearSRGB
 )
 

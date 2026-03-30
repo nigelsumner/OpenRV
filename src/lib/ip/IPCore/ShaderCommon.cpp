@@ -98,6 +98,7 @@ extern const char* ColorUnpremult_glsl;
 extern const char* ColorLinearSRGB_glsl;
 extern const char* ColorLinearRec709_glsl;
 extern const char* ColorLinearACESLog_glsl;
+extern const char* ColorSceneLinearToNorm_glsl;
 extern const char* Color3DLUT_glsl;
 extern const char* Color3DLUTGLSampling_glsl;
 extern const char* ColorChannelLUT_glsl;
@@ -295,6 +296,7 @@ namespace IPCore
         static Function* Shader_ColorViperLogLinear = 0;
         static Function* Shader_ColorRedLogLinear = 0;
         static Function* Shader_ColorLinearRedLog = 0;
+        static Function* Shader_ColorSceneLinearToNorm = 0;
         static Function* Shader_ColorPremult = 0;
         static Function* Shader_ColorPremultLight = 0;
         static Function* Shader_ColorUnpremult = 0;
@@ -1286,6 +1288,22 @@ namespace IPCore
             }
 
             return Shader_ColorLinearRedLog;
+        }
+
+        Function* colorSceneLinearToNorm()
+        {
+            if (!Shader_ColorSceneLinearToNorm)
+            {
+                SymbolVector params, globals;
+                params.push_back(P());
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "logMin", Symbol::FloatType));
+                params.push_back(new Symbol(Symbol::ParameterConstIn, "logMax", Symbol::FloatType));
+
+                Shader_ColorSceneLinearToNorm =
+                    new Shader::Function("ColorSceneLinearToNorm", ColorSceneLinearToNorm_glsl, Shader::Function::Color, params, globals);
+            }
+
+            return Shader_ColorSceneLinearToNorm;
         }
 
         Function* colorPremult()
@@ -3299,6 +3317,20 @@ namespace IPCore
             args[i] = new BoundFloat(F->parameters()[i], refBlack);
             i++;
             args[i] = new BoundFloat(F->parameters()[i], refWhite);
+            i++;
+            return new Expression(F, args, FA->image());
+        }
+
+        Expression* newColorSceneLinearToNorm(Expression* FA, float logMin, float logMax)
+        {
+            const Function* F = colorSceneLinearToNorm();
+            ArgumentVector args(F->parameters().size());
+            size_t i = 0;
+            args[i] = new BoundExpression(F->parameters()[i], FA);
+            i++;
+            args[i] = new BoundFloat(F->parameters()[i], logMin);
+            i++;
+            args[i] = new BoundFloat(F->parameters()[i], logMax);
             i++;
             return new Expression(F, args, FA->image());
         }
